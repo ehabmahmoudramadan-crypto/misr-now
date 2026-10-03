@@ -123,14 +123,14 @@ const UI = (() => {
     const track = $("#ticker-track");
     if (!track) return;
 
-    track.innerHTML = '<span class="ticker-item">Loading live headlines…</span>';
+    track.innerHTML = '<span class="ticker-item">Loading headlines…</span>';
     try {
       const news = await Api.allNews();
       track.innerHTML = news.slice(0, 12).map(n =>
-        `<a class="ticker-item" href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a>`
+        `<a class="ticker-item" dir="auto" href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a>`
       ).join("");
     } catch (err) {
-      track.innerHTML = `<span class="ticker-item">Breaking news feed unavailable right now</span>`;
+      track.innerHTML = `<span class="ticker-item">The news feed is unavailable right now</span>`;
     }
   }
 

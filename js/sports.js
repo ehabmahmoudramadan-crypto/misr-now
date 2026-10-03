@@ -1,5 +1,5 @@
 /* =========================================================
-   MISR NOW — sports page
+   MISR NOW â€” sports page
    Live scores (auto refresh), league list, sports headlines
    from GNews and a team finder backed by TheSportsDB.
    ========================================================= */
@@ -14,7 +14,7 @@
     const awayWin = live && m.awayScore > m.homeScore;
 
     const statusText = {
-      live: `● ${m.minute || "LIVE"}`,
+      live: `â— ${m.minute || "LIVE"}`,
       finished: "Full time",
       postponed: "Postponed",
       scheduled: m.kickoff ? `Kick-off ${m.kickoff}` : "Upcoming"
@@ -36,7 +36,7 @@
         <b>${played ? m.awayScore : ""}</b>
       </div>
       ${played ? "" : `<div class="match-vs">${esc(m.score)}</div>`}
-      ${m.venue ? `<footer class="match-foot">📍 ${esc(m.venue)}</footer>` : ""}
+      ${m.venue ? `<footer class="match-foot">ðŸ“ ${esc(m.venue)}</footer>` : ""}
     </article>`;
   };
 
@@ -50,7 +50,7 @@
         ? matches.map(scoreCard).join("")
         : emptyState("No matches available", "TheSportsDB has no live fixtures right now.");
       $("#scores-stamp").textContent =
-        `${matches.filter(m => m.status === "live").length} live · updated ${new Date().toLocaleTimeString("en-GB", { hour12: false })}`;
+        `${matches.filter(m => m.status === "live").length} live Â· updated ${new Date().toLocaleTimeString("en-GB", { hour12: false })}`;
     } catch (err) {
       grid.innerHTML = emptyState("Could not load scores", err.message);
     }
@@ -63,7 +63,7 @@
       const leagues = await Api.leagues();
       grid.innerHTML = leagues.map(l => `
         <article class="league-card">
-          <span class="league-icon">⚽</span>
+          <span class="league-icon">âš½</span>
           <b>${esc(l.name)}</b>
           <small>${esc(l.sport)}</small>
         </article>`).join("");
@@ -87,8 +87,8 @@
               <span class="tag">${esc(a.sourceName)}</span>
               <span>${timeAgo(a.date)}</span>
             </div>
-            <h3><button class="link-btn" data-open>${esc(a.title)}</button></h3>
-            <p class="clamp-2">${esc(a.summary || "")}</p>
+            <h3><button class="link-btn" data-open dir="auto">${esc(a.title)}</button></h3>
+            <p class="clamp-2" dir="auto">${esc(a.summary || "")}</p>
           </div>
         </article>`).join("");
 
@@ -113,12 +113,12 @@
             <img src="${esc(t.badge)}" alt="" loading="lazy" onerror="this.src='${Api.placeholder}'">
             <div>
               <b>${esc(t.name)}</b>
-              <small>${esc(t.country)}${t.league ? " · " + esc(t.league) : ""}</small>
-              ${t.stadium ? `<small>🏟 ${esc(t.stadium)}${t.capacity ? " · " + Number(t.capacity).toLocaleString("en-US") + " seats" : ""}</small>` : ""}
+              <small>${esc(t.country)}${t.league ? " Â· " + esc(t.league) : ""}</small>
+              ${t.stadium ? `<small>ðŸŸ ${esc(t.stadium)}${t.capacity ? " Â· " + Number(t.capacity).toLocaleString("en-US") + " seats" : ""}</small>` : ""}
               ${t.formed ? `<small>Founded ${esc(t.formed)}</small>` : ""}
             </div>
           </article>`).join("")
-        : emptyState("No team found", `Nothing matched “${query}”`);
+        : emptyState("No team found", `Nothing matched â€œ${query}â€`);
     } catch (err) {
       grid.innerHTML = emptyState("Search failed", err.message);
     }

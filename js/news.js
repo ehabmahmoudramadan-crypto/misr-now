@@ -16,10 +16,12 @@
     shown: CONFIG.pageSize
   };
 
-  /* ---------- card markup ---------- */
+  /* ---------- card markup ----------
+     Headlines are Arabic, so every text node carries dir="auto" and
+     lets the browser pick the direction from the first strong letter. */
   const cardHtml = (article, index) => `
     <article class="news-card" data-index="${index}">
-      <button class="card-media" data-open aria-label="Read: ${esc(article.title)}">
+      <button class="card-media" data-open aria-label="${esc(article.title)}">
         <img src="${esc(article.image)}" alt="" loading="lazy" onerror="this.src='${Api.placeholder}'">
       </button>
       <div class="card-body">
@@ -27,22 +29,8 @@
           <span class="tag">${esc(article.source)}</span>
           <span>${timeAgo(article.date)}</span>
         </div>
-        <h3><button class="link-btn" data-open>${esc(article.title)}</button></h3>
-        <p class="clamp-2">${esc(article.summary || "Open the original report for full coverage.")}</p>
-      </div>
-    </article>`;
-
-  const rowHtml = article => `
-    <article class="news-row">
-      <button class="row-media" data-open aria-label="Read: ${esc(article.title)}">
-        <img src="${esc(article.image)}" alt="" loading="lazy" onerror="this.src='${Api.placeholder}'">
-      </button>
-      <div class="row-body">
-        <div class="meta">
-          <span class="tag">${esc(article.source)}</span>
-          <span>${timeAgo(article.date)}</span>
-        </div>
-        <h4><button class="link-btn" data-open>${esc(article.title)}</button></h4>
+        <h3><button class="link-btn" data-open dir="auto">${esc(article.title)}</button></h3>
+        <p class="clamp-2" dir="auto">${esc(article.summary || "افتح التقرير الأصلي للتفاصيل الكاملة.")}</p>
       </div>
     </article>`;
 
@@ -52,10 +40,23 @@
 
     if (state.source !== "all") list = list.filter(a => a.source === state.source);
     if (state.query) {
-      const q = state.query.toLowerCase();
-      list = list.filter(a => a.title.toLowerCase().includes(q));
+      const q = foldArabic(state.query);
+      list = list.filter(a => foldArabic(a.title).includes(q));
     }
     return list;
+  }
+
+  /* Arabic is typed without diacritics and with several letter
+     variants, so the search box folds both sides before comparing. */
+  function foldArabic(text) {
+    return String(text)
+      .toLowerCase()
+      .replace(/[\u064B-\u0652\u0670\u0640]/g, "")
+      .replace(/[أإآٱ]/g, "ا")
+      .replace(/ى/g, "ي")
+      .replace(/ؤ/g, "و")
+      .replace(/ئ/g, "ي")
+      .replace(/ة/g, "ه");
   }
 
   function render() {
@@ -64,7 +65,7 @@
     const grid = $("#news-grid");
 
     if (!list.length) {
-      hero.innerHTML = emptyState("Nothing found", state.query ? `No headlines match “${state.query}”` : "Try another section");
+      hero.innerHTML = emptyState("No headlines found", state.query ? `Nothing matches “${state.query}”` : "Try another section");
       grid.innerHTML = "";
       $("#load-more").style.display = "none";
       return;
@@ -73,7 +74,7 @@
     const [top, ...rest] = list;
     hero.innerHTML = `
       <article class="hero-inner" data-index="0">
-        <button class="hero-media" data-open aria-label="Read: ${esc(top.title)}">
+        <button class="hero-media" data-open aria-label="${esc(top.title)}">
           <img src="${esc(top.image)}" alt="" onerror="this.src='${Api.placeholder}'">
         </button>
         <div class="hero-body">
@@ -81,9 +82,9 @@
             <span class="tag tag-lg">${esc(top.source)}</span>
             <span>${timeAgo(top.date)}</span>
           </div>
-          <h2><button class="link-btn" data-open>${esc(top.title)}</button></h2>
-          <p>${esc(top.summary || "")}</p>
-          <button class="btn btn-sm" data-open>Read full story ↗</button>
+          <h2><button class="link-btn" data-open dir="auto">${esc(top.title)}</button></h2>
+          <p dir="auto">${esc(top.summary || "")}</p>
+          <button class="btn btn-sm" data-open>Read the full story ↗</button>
         </div>
       </article>`;
 

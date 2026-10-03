@@ -1,5 +1,5 @@
 /* =========================================================
-   MISR NOW — API layer
+   MISR NOW â€” API layer
    - localStorage cache (fewer requests, faster repeat visits)
    - every provider response normalised to one shape
    - fallback source whenever the primary one fails
@@ -54,19 +54,61 @@ const Api = (() => {
     return task;
   }
 
+  /* Same contract as getJSON but for XML bodies. Used for the feeds that
+     send Access-Control-Allow-Origin, so they need no proxy and no quota. */
+  async function getXML(url, cacheKey, { force = false } = {}) {
+    if (!force && cacheKey) {
+      const hit = cache.get(cacheKey);
+      if (hit) return hit;
+      if (inflight.has(cacheKey)) return inflight.get(cacheKey);
+    }
+
+    const task = (async () => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      if (cacheKey) cache.set(cacheKey, text);
+      return text;
+    })();
+
+    if (cacheKey) {
+      inflight.set(cacheKey, task);
+      task.catch(() => {}).finally(() => inflight.delete(cacheKey));
+    }
+
+    return task;
+  }
+
   /* =========================================================
      NEWS
      ========================================================= */
   const rss2json = "https://api.rss2json.com/v1/api.json?rss_url=";
 
   async function rssFeed(feed) {
-    /* Note: the count parameter requires a paid key on rss2json, so we skip it */
-    const data = await getJSON(rss2json + encodeURIComponent(feed.url), "news:" + feed.id);
+    /* Feeds flagged direct send CORS headers, so the browser reads the XML
+       itself â€” no proxy, no rss2json quota. The rest go through rss2json,
+       which throttles bursts with a 429, so one delayed retry is enough. */
+    if (feed.direct) {
+      const xml = await getXML(feed.url, "news:" + feed.id);
+      return parseFeedXml(xml, feed);
+    }
+
+    const url = rss2json + encodeURIComponent(feed.url);
+
+    let data;
+    try {
+      data = await getJSON(url, "news:" + feed.id);
+    } catch (err) {
+      if (!/429/.test(err.message)) throw err;
+      await new Promise(r => setTimeout(r, CONFIG.rssRetryMs));
+      data = await getJSON(url, "news:" + feed.id);
+    }
+
     return (data.items || []).map(item => ({
       title: clean(item.title),
       link: item.link,
       date: item.pubDate,
-      image: item.thumbnail || item.enclosure?.link || item.image?.url || placeholder,
+      image: item.thumbnail || item.enclosure?.link || item.image?.url || firstImage(item.description) || placeholder,
       summary: stripHtml(item.description || item.content || "").slice(0, 260),
       source: feed.short,
       sourceName: feed.name,
@@ -75,12 +117,58 @@ const Api = (() => {
     }));
   }
 
-  async function gnews(category = "top") {
-    /* "top" = the country headline feed, so no category filter is sent */
-    const params = new URLSearchParams({ lang: "en", country: "us", apikey: CONFIG.gnewsKey });
-    if (category && category !== "top") params.set("category", category);
+  /* Reads both RSS 2.0 (<pubDate>, <description>) and RSS 1.0 / RDF
+     (<dc:date>) shapes, which is what DW and Al Masry Al-Youm send. */
+  function parseFeedXml(xml, feed) {
+    const doc = new DOMParser().parseFromString(xml, "text/xml");
 
-    const direct = `https://gnews.io/api/v4/top-headlines?${params}`;
+    return [...doc.querySelectorAll("item")].map(node => {
+      const text = tag => node.getElementsByTagName(tag)[0]?.textContent?.trim() || "";
+      const body = text("description") || text("content:encoded");
+
+      const media =
+        node.getElementsByTagName("media:content")[0]?.getAttribute("url") ||
+        node.getElementsByTagName("media:thumbnail")[0]?.getAttribute("url") ||
+        node.getElementsByTagName("enclosure")[0]?.getAttribute("url") ||
+        firstImage(body);
+
+      return {
+        title: clean(text("title")),
+        link: text("link") || node.getAttribute("rdf:about") || "",
+        date: text("pubDate") || text("dc:date") || "",
+        image: media || placeholder,
+        summary: stripHtml(body).slice(0, 260),
+        source: feed.short,
+        sourceName: feed.name,
+        feedId: feed.id,
+        category: ""
+      };
+    });
+  }
+
+  /* rss2json gives no thumbnail for most items, but the description
+     usually embeds the article image. */
+  function firstImage(html) {
+    const src = String(html || "").match(/<img[^>]+src=["']([^"']+)["']/i);
+    return src ? src[1] : "";
+  }
+
+  async function gnews(section = "top") {
+    const cat = CONFIG.categories.find(c => c.id === section);
+
+    /* Some topics answer with nothing in Arabic, so each section may also
+       declare a search phrase that reliably returns results. */
+    const endpoint = cat?.query ? "search" : "top-headlines";
+
+    const params = new URLSearchParams({
+      lang: CONFIG.gnewsLang,
+      country: CONFIG.gnewsCountry,
+      apikey: CONFIG.gnewsKey
+    });
+    if (cat?.query) params.set("q", cat.query);
+    else if (cat?.topic) params.set("topic", cat.topic);
+
+    const direct = `https://gnews.io/api/v4/${endpoint}?${params}`;
 
     /* gnews.io answers without an Access-Control-Allow-Origin header,
        so a browser cannot call it straight from the page. The request
@@ -92,13 +180,13 @@ const Api = (() => {
        together, so a single delayed retry is enough to recover. */
     let data;
     try {
-      data = await getJSON(url, "gnews:" + category);
+      data = await getJSON(url, "gnews:" + section);
     } catch (err) {
       if (/429/.test(err.message)) {
         await new Promise(r => setTimeout(r, CONFIG.gnewsRetryMs));
-        data = await getJSON(url, "gnews:" + category);
+        data = await getJSON(url, "gnews:" + section);
       } else {
-        data = await getJSON(direct, "gnews:" + category);
+        data = await getJSON(direct, "gnews:" + section);
       }
     }
 
@@ -111,7 +199,7 @@ const Api = (() => {
       source: "GNews",
       sourceName: a.source?.name || "GNews",
       feedId: "gnews",
-      category
+      category: section
     }));
   }
 
@@ -330,18 +418,18 @@ const Api = (() => {
     const start = times.findIndex(t => new Date(t.replace(" ", "T")).getTime() >= now);
     return [start === -1 ? 0 : start, 12];
   }  function emojiFromWeatherApi(code, isDay = true) {
-    if (code === 1000) return isDay ? "☀️" : "🌙";
-    if (code === 1003) return "⛅";
-    if ([1006, 1009].includes(code)) return "☁️";
-    if ([1030, 1114, 1117, 1118, 1135, 1147].includes(code)) return "🌫️";
-    if ([1063, 1150, 1153, 1180, 1183, 1240, 1243].includes(code)) return "🌦️";
-    if ([1066, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258].includes(code)) return "❄️";
-    if ([1069, 1072, 1192, 1195, 1201, 1204, 1207, 1237, 1249, 1252, 1261, 1264].includes(code)) return "🌧️";
-    if ([1087, 1246, 1273, 1276, 1279].includes(code)) return "⛈️";
-    return "🌡️";
+    if (code === 1000) return isDay ? "â˜€ï¸" : "ðŸŒ™";
+    if (code === 1003) return "â›…";
+    if ([1006, 1009].includes(code)) return "â˜ï¸";
+    if ([1030, 1114, 1117, 1118, 1135, 1147].includes(code)) return "ðŸŒ«ï¸";
+    if ([1063, 1150, 1153, 1180, 1183, 1240, 1243].includes(code)) return "ðŸŒ¦ï¸";
+    if ([1066, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258].includes(code)) return "â„ï¸";
+    if ([1069, 1072, 1192, 1195, 1201, 1204, 1207, 1237, 1249, 1252, 1261, 1264].includes(code)) return "ðŸŒ§ï¸";
+    if ([1087, 1246, 1273, 1276, 1279].includes(code)) return "â›ˆï¸";
+    return "ðŸŒ¡ï¸";
   }
 
-  /* WMO code table — only used by the Open-Meteo fallback */
+  /* WMO code table â€” only used by the Open-Meteo fallback */
   function weatherDesc(code) {
     const map = {
       0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
@@ -358,16 +446,16 @@ const Api = (() => {
   }
 
   function weatherIcon(code, isDay = true) {
-    if (code === 0) return isDay ? "☀️" : "🌙";
-    if ([1, 2].includes(code)) return isDay ? "🌤️" : "☁️";
-    if (code === 3) return "☁️";
-    if ([45, 48].includes(code)) return "🌫️";
-    if (code >= 51 && code <= 57) return "🌦️";
-    if (code >= 61 && code <= 67) return "🌧️";
-    if (code >= 71 && code <= 77) return "❄️";
-    if (code >= 80 && code <= 86) return "🌧️";
-    if (code >= 95) return "⛈️";
-    return "🌡️";
+    if (code === 0) return isDay ? "â˜€ï¸" : "ðŸŒ™";
+    if ([1, 2].includes(code)) return isDay ? "ðŸŒ¤ï¸" : "â˜ï¸";
+    if (code === 3) return "â˜ï¸";
+    if ([45, 48].includes(code)) return "ðŸŒ«ï¸";
+    if (code >= 51 && code <= 57) return "ðŸŒ¦ï¸";
+    if (code >= 61 && code <= 67) return "ðŸŒ§ï¸";
+    if (code >= 71 && code <= 77) return "â„ï¸";
+    if (code >= 80 && code <= 86) return "ðŸŒ§ï¸";
+    if (code >= 95) return "â›ˆï¸";
+    return "ðŸŒ¡ï¸";
   }
 
   /* =========================================================
@@ -427,10 +515,23 @@ const Api = (() => {
     });
   }
 
+  /* Used whenever a publisher sends no image. A branded gradient reads
+     better in a grid than a broken-image box. */
   const placeholder = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="225">
-      <rect width="400" height="225" fill="#1b2333"/>
-      <text x="200" y="118" fill="#8fa0b8" font-size="26" font-family="sans-serif"
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#d62828"/>
+          <stop offset="1" stop-color="#f77f00"/>
+        </linearGradient>
+      </defs>
+      <rect width="400" height="225" fill="url(#g)"/>
+      <g fill="none" stroke="rgba(255,255,255,.28)" stroke-width="6">
+        <circle cx="200" cy="112" r="46"/>
+        <path d="M176 130V96l24-18 24 18v34"/>
+      </g>
+      <text x="200" y="196" fill="rgba(255,255,255,.9)" font-size="19"
+        font-family="sans-serif" font-weight="700" letter-spacing="3"
         text-anchor="middle">MISR NOW</text>
     </svg>`
   );
