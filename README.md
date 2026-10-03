@@ -1,10 +1,25 @@
 # MISR NOW
 
-**Live English news portal for Egypt and the world** — headlines, football, currency rates and weather, built with nothing but HTML, CSS and vanilla JavaScript.
+**Live Arabic news portal with an English interface** — headlines, football, currency rates and weather, built with nothing but HTML, CSS and vanilla JavaScript.
 
-Every figure on the site is fetched live from free public APIs at request time. There is no database, no build step and no framework.
+The chrome (navigation, buttons, section labels, tables) is in English, and every
+headline comes back in Arabic — Egyptian Arabic first, through GNews and a set of
+Arabic RSS feeds. Everything is fetched live from free public APIs at request
+time. No database, no build step, no framework.
 
 🔗 **Live demo:** https://ehabmahmoudramadan-crypto.github.io/misr-now/
+
+---
+
+## Languages
+
+| Layer | Language | How |
+| --- | --- | --- |
+| Interface | English | static markup in the five HTML files |
+| Headlines, summaries | Arabic | `CONFIG.gnewsLang = "ar"`, `CONFIG.gnewsCountry = "eg"`, Arabic RSS feeds |
+| Direction of a headline | automatic | every text node carries `dir="auto"`, so the browser picks RTL or LTR from the content |
+| Search | Arabic-aware | diacritics, hamza and ta-marbuta variants are folded before comparing |
+| Sports, weather, currency data | English | TheSportsDB, WeatherAPI and open.er-api return those in English |
 
 ---
 
@@ -12,7 +27,7 @@ Every figure on the site is fetched live from free public APIs at request time. 
 
 | Page | File | What it does |
 | --- | --- | --- |
-| Home | `index.html` | Merged live feed (6 sources), lead story, lazy category rail, source filter, search, live weather / rates / score widgets |
+| Home | `index.html` | Merged live feed (6 sources), lead story, lazy section rail, source filter, Arabic-aware search, live weather / rates / score widgets |
 | Sports | `sports.html` | Live scores with auto-refresh, league list, sports headlines, club finder |
 | Currency | `currency.html` | Featured EGP pairs, instant converter, full rate table with share bars |
 | Weather | `weather.html` | Current conditions for 8 Egyptian cities, next 12 hours, 5-day outlook, at-a-glance grid |
@@ -32,13 +47,16 @@ Each page then loads its own small script: `news.js`, `sports.js`, `currency.js`
 
 | Feature | Provider | Key needed | Notes |
 | --- | --- | --- | --- |
-| Top headlines | GNews | yes | English (`lang=en`, `country=us`), categories loaded lazily |
-| RSS headlines | rss2json + BBC, CBS, France 24, DW, The Guardian | no | 10 items per feed |
+| Top headlines | GNews (`lang=ar`, `country=eg`) | yes | Sections use an Arabic search phrase, fetched lazily |
+| Arabic RSS | DW Arabic, Al Masry Al-Youm | no | Fetched **directly** — these send CORS headers, so the browser parses the XML itself |
+| Arabic RSS | BBC Arabic, Al Jazeera, RT Arabic | no | Read through rss2json, which has a free quota and throttles bursts |
 | Football | TheSportsDB | no (free tier `123`) | Live scores, leagues, team search |
 | Exchange rates | open.er-api.com | no | Primary source — the only free one carrying EGP |
 | Exchange backup | Frankfurter | no | Fills any international pair the primary misses |
 | Weather | WeatherAPI | yes | Current, hourly and 6-day forecast |
 | Weather fallback | Open-Meteo | no | Used automatically if WeatherAPI fails |
+
+A typical home page therefore shows around 100 Arabic headlines from six sources.
 
 ### Behaviour under failure
 
