@@ -26,12 +26,12 @@ const CONFIG = {
      stay well inside the free daily quota. `query` is used when a
      topic returns nothing useful in Arabic. */
   categories: [
-    { id: "world", name: "World", icon: "🌍", query: "العالم" },
-    { id: "business", name: "Business", icon: "💼", query: "اقتصاد" },
-    { id: "technology", name: "Tech", icon: "💻", topic: "technology" },
-    { id: "sports", name: "Sports", icon: "⚽", query: "رياضة" },
-    { id: "health", name: "Health", icon: "🩺", query: "صحة" },
-    { id: "entertainment", name: "Culture", icon: "🎬", query: "فن وثقافة" }
+    { id: "world", name: "World", icon: "", query: "العالم" },
+    { id: "business", name: "Business", icon: "", query: "اقتصاد" },
+    { id: "technology", name: "Tech", icon: "", topic: "technology" },
+    { id: "sports", name: "Sports", icon: "", query: "رياضة" },
+    { id: "health", name: "Health", icon: "", query: "صحة" },
+    { id: "entertainment", name: "Culture", icon: "", query: "فن وثقافة" }
   ],
 
   /* Open Arabic RSS feeds — free, no key.
@@ -45,14 +45,32 @@ const CONFIG = {
     { id: "rt-arabic", name: "RT Arabic", short: "RT", url: "https://arabic.rt.com/rss/" }
   ],
 
-  /* ---------- WEATHER ---------- */
-  /* All 27 Egyptian governorates, grouped by region. The rail is grouped
-     the same way so the page stays readable with this many cities. */
+  /* ---------- FOOTBALL (home sidebar widget) ---------- */
+  /* ESPN's public scoreboard sends `Access-Control-Allow-Origin: *`,
+     needs no key and covers the leagues worth watching from Egypt.
+     The list is ordered by importance: when several matches are live
+     the widget shows the most important ones first. */
+  sports: {
+    base: "https://site.api.espn.com/apis/site/v2/sports/soccer",
+    leagues: [
+      { code: "uefa.champions", name: "Champions League" },
+      { code: "eng.1", name: "Premier League" },
+      { code: "esp.1", name: "La Liga" },
+      { code: "ita.1", name: "Serie A" },
+      { code: "ger.1", name: "Bundesliga" },
+      { code: "fra.1", name: "Ligue 1" },
+      { code: "uefa.europa", name: "Europa League" },
+      { code: "ksa.1", name: "Saudi Pro League" }
+    ],
+    /* how many rows the sidebar shows, and how often scores refresh */
+    limit: 6,
+    refreshSec: 120
+  },
+
   weatherApiKey: "eaddd34ad0834a5f841145519263009",
   weatherApi: { base: "https://api.weatherapi.com/v1" },
   weather: {
     base: "https://api.open-meteo.com/v1/forecast",
-    /* How many cities may be requested at once by the "all cities" grid */
     batch: 6,
     regions: ["Greater Cairo", "Delta", "Canal & Coast", "Upper Egypt"],
     cities: [

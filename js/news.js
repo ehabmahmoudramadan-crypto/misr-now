@@ -1,7 +1,7 @@
 /* =========================================================
    MISR NOW — home page
-   Merged live feed + lazy-loaded category sections,
-   search, source filter and the three live sidebar widgets.
+   Merged live feed + lazy-loaded category sections, search,
+   the three live sidebar widgets and the live match board.
    ========================================================= */
 
 (() => {
@@ -12,7 +12,6 @@
     category: null,    // active GNews section (null = merged feed)
     categoryCache: {}, // section id -> articles
     query: "",
-    source: "all",
     shown: CONFIG.pageSize
   };
 
@@ -38,7 +37,6 @@
   function articles() {
     let list = state.category ? (state.categoryCache[state.category] || []) : state.feed;
 
-    if (state.source !== "all") list = list.filter(a => a.source === state.source);
     if (state.query) {
       const q = foldArabic(state.query);
       list = list.filter(a => foldArabic(a.title).includes(q));
@@ -131,31 +129,58 @@
     });
   }
 
-  /* ---------- source filter ---------- */
-  function renderSources() {
-    const names = [...new Set(state.feed.map(a => a.source))];
-    $("#source-list").innerHTML = names.map(name => {
-      const count = state.feed.filter(a => a.source === name).length;
-      return `<li>
-        <button class="source-btn" data-source="${esc(name)}">
-          <span>${esc(name)}</span><em>${count}</em>
-        </button>
-      </li>`;
-    }).join("");
-
-    $("#source-list").addEventListener("click", e => {
-      const btn = e.target.closest(".source-btn");
-      if (!btn) return;
-      const name = btn.dataset.source;
-      state.source = state.source === name ? "all" : name;
-      state.shown = CONFIG.pageSize;
-      $$(".source-btn").forEach(b => b.classList.toggle("active", b.dataset.source === state.source));
-      render();
+  /* ---------- live match board (sidebar) ----------
+     ESPN returns the next fixtures for a league, so the board ranks
+     whatever is playing first, then the soonest kick-offs — and it
+     polls every CONFIG.sports.refreshSec seconds while the tab is open. */
+  function kickoffLabel(date) {
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("en-GB", {
+      weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
     });
+  }
+
+  function scoreRow(m) {
+    const status = m.live
+      ? `LIVE · ${m.detail || "Playing"}`
+      : m.finished ? "FT" : kickoffLabel(m.date);
+    const value = m.live || m.finished ? `${m.homeScore} - ${m.awayScore}` : "vs";
+
+    return `<div class="score-row ${m.live ? "is-live" : ""}">
+      <span class="score-meta">
+        <span class="league">${esc(m.league)}</span>
+        <span class="status">${esc(status)}</span>
+      </span>
+      <span class="score-body">
+        <span class="score-teams">
+          <span>${esc(m.home)}</span>
+          <span>${esc(m.away)}</span>
+        </span>
+        <span class="score-value">${esc(value)}</span>
+      </span>
+    </div>`;
+  }
+
+  async function loadScores(force = false) {
+    try {
+      const matches = await Api.liveMatches(force);
+      const live = matches.filter(m => m.live).length;
+
+      $("#side-scores").innerHTML = matches.length
+        ? matches.map(scoreRow).join("")
+        : emptyState("No matches right now", "Fixtures appear here as soon as they are scheduled.");
+
+      const stamp = $("#scores-stamp");
+      if (stamp) stamp.textContent = live ? `${live} playing now` : "next kick-offs";
+    } catch {
+      $("#side-scores").innerHTML = emptyState("Match board unavailable", "ESPN did not respond.");
+    }
   }
 
   /* ---------- live widgets ---------- */
   async function loadWidgets() {
+    loadScores();
     loadCurrency();
     loadWeather();
   }
@@ -193,6 +218,7 @@
         <a class="btn btn-ghost btn-sm" href="weather.html">Open weather page →</a>`;
     } catch {
       $("#strip-weather").innerHTML = emptyState("Weather unavailable");
+      $("#side-weather").innerHTML = emptyState("Weather unavailable");
     }
   }
 
@@ -246,7 +272,6 @@
     $("#news-grid").innerHTML = skeleton(3);
     try {
       state.feed = await Api.allNews();
-      renderSources();
       render();
     } catch (err) {
       $("#news-grid").innerHTML = emptyState("Could not load headlines", err.message);
@@ -258,5 +283,8 @@
     initSearch();
     loadNews();
     loadWidgets();
+
+    /* keep the match board fresh while the tab stays open */
+    setInterval(() => loadScores(true), CONFIG.sports.refreshSec * 1000);
   });
 })();

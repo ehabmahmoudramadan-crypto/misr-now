@@ -1,9 +1,3 @@
-/* =========================================================
-   MISR NOW — stylesheet
-   Light/dark themes driven by CSS custom properties,
-   left-to-right layout, responsive down to 360px.
-   ========================================================= */
-
 /* ---------- design tokens ---------- */
 :root {
   --brand: #d62828;
@@ -124,6 +118,7 @@ button, input, select { font: inherit; color: inherit; }
   font-weight: 800;
   letter-spacing: .1em;
   white-space: nowrap;
+  width: 70px;
 }
 
 .ticker-window { overflow: hidden; flex: 1; }
@@ -415,37 +410,58 @@ main { padding-block: 1.8rem 3rem; }
 
 .widget { padding: 1.05rem 1.15rem; }
 .widget-title { margin: 0 0 .8rem; font-size: .96rem; }
-.widget-cta p { margin: 0 0 .8rem; font-size: .86rem; color: var(--ink-soft); }
-
-.stack { display: flex; flex-wrap: wrap; gap: .4rem; }
-.stack span {
-  font-size: .74rem;
-  font-weight: 600;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: .18rem .5rem;
+.widget-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .6rem;
+  margin-bottom: .8rem;
 }
+.widget-head .widget-title { margin: 0; }
 
-.source-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
+/* ---------- live match board ---------- */
+.score-row {
+  display: grid;
+  gap: .3rem;
+  padding: .55rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.score-row:first-child { padding-top: 0; }
+.score-row:last-child { border-bottom: 0; padding-bottom: 0; }
 
-.source-btn {
-  width: 100%;
+.score-meta {
   display: flex;
   justify-content: space-between;
   gap: .5rem;
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: .42rem .55rem;
-  cursor: pointer;
-  font-size: .88rem;
-  text-align: start;
+  font-size: .7rem;
 }
-.source-btn:hover { background: var(--surface-2); }
-.source-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
-.source-btn em { font-style: normal; color: var(--ink-soft); font-size: .78rem; }
-.source-btn.active em { color: rgba(255, 255, 255, .8); }
+.score-meta .league {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.score-meta .status {
+  flex: none;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.score-row.is-live .status { color: var(--live); }
+
+.score-body { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.score-teams { display: grid; gap: .1rem; min-width: 0; font-size: .88rem; }
+.score-teams span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.score-value {
+  flex: none;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.score-row.is-live .score-value { color: var(--live); }
 
 /* ---------- weather widgets ---------- */
 .wx-row { display: flex; align-items: center; gap: .8rem; }

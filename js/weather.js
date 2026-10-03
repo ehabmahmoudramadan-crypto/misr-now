@@ -23,7 +23,7 @@
     const m = String(value || "").match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
     return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : null;
   };
-  const hhmm = value => String(value || "").split(" ")[1]?.slice(0, 5) || "—";
+  const hhmm = value => String(value || "").split(/[T ]/)[1]?.slice(0, 5) || "—";
   const dayLabel = value => {
     const d = localTime(value);
     return d ? d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : value;

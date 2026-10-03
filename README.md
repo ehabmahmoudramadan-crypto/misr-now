@@ -27,7 +27,7 @@ time. No database, no build step, no framework.
 
 | Page | File | What it does |
 | --- | --- | --- |
-| Home | `index.html` | Merged live feed (6 sources), lead story, lazy section rail, source filter, Arabic-aware search, live weather / rates / score widgets |
+| Home | `index.html` | Merged live feed (6 sources), lead story, lazy section rail, Arabic-aware search, plus three live widgets: match board, weather and rates |
 
 | Currency | `currency.html` | Featured EGP pairs, instant converter, full rate table with share bars |
 | Weather | `weather.html` | All 27 governorates grouped by region, next 12 hours, 5-day outlook, opt-in country-wide grid loaded in batches |
@@ -50,11 +50,11 @@ Each page then loads its own small script: `news.js`, `currency.js`, `weather.js
 | Top headlines | GNews (`lang=ar`, `country=eg`) | yes | Sections use an Arabic search phrase, fetched lazily |
 | Arabic RSS | DW Arabic, Al Masry Al-Youm | no | Fetched **directly** — these send CORS headers, so the browser parses the XML itself |
 | Arabic RSS | BBC Arabic, Al Jazeera, RT Arabic | no | Read through rss2json, which has a free quota and throttles bursts |
-
+| Live match board | ESPN public scoreboards | no | Free and CORS-enabled — live matches first, then the next kick-offs interleaved across eight leagues |
 | Exchange rates | open.er-api.com | no | Primary source — the only free one carrying EGP |
 | Exchange backup | Frankfurter | no | Fills any international pair the primary misses |
-| Weather | WeatherAPI | yes | Current, hourly and 6-day forecast |
-| Weather fallback | Open-Meteo | no | Used automatically if WeatherAPI fails |
+| Weather | WeatherAPI | yes | Current, hourly and daily forecast for all 27 governorates with the richer facts (UV, visibility, pressure); the free tier caps the forecast at three days |
+| Weather fallback | Open-Meteo | no | Used automatically if WeatherAPI fails — no key, no quota and a full six-day forecast |
 
 A typical home page therefore shows around 100 Arabic headlines from six sources.
 
@@ -62,6 +62,7 @@ A typical home page therefore shows around 100 Arabic headlines from six sources
 
 * A dead RSS feed is logged and skipped — the rest of the feed still renders.
 * WeatherAPI falling back to Open-Meteo is transparent to the page.
+* Every request carries a timeout budget, so one dead endpoint can never stall a widget.
 * If every currency provider fails the page shows an explicit empty state.
 * Identical in-flight requests share one network call, which keeps GNews
   inside its free-tier rate limit.

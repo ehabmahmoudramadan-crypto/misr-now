@@ -31,7 +31,18 @@ const Api = (() => {
      so identical in-flight requests share a single network call. */
   const inflight = new Map();
 
-  async function getJSON(url, cacheKey, { force = false } = {}) {
+  /* A slow provider must never hold a widget hostage: every request
+     carries its own budget. AbortSignal.timeout is widely available,
+     but the manual fallback keeps older browsers working. */
+  function timeoutSignal(ms) {
+    if (typeof AbortSignal === "undefined" || !ms) return undefined;
+    if (AbortSignal.timeout) return AbortSignal.timeout(ms);
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), ms);
+    return ctrl.signal;
+  }
+
+  async function getJSON(url, cacheKey, { force = false, timeout = 12000 } = {}) {
     if (!force && cacheKey) {
       const hit = cache.get(cacheKey);
       if (hit) return hit;
@@ -39,7 +50,13 @@ const Api = (() => {
     }
 
     const task = (async () => {
-      const res = await fetch(url);
+      let res = await fetch(url, { signal: timeoutSignal(timeout) });
+      if (res.status === 429) {
+        /* Free endpoints answer 429 when two calls land too close
+           together — one delayed retry is enough to get through. */
+        await new Promise(r => setTimeout(r, 900));
+        res = await fetch(url, { signal: timeoutSignal(timeout) });
+      }
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       if (cacheKey) cache.set(cacheKey, data);
@@ -56,7 +73,7 @@ const Api = (() => {
 
   /* Same contract as getJSON but for XML bodies. Used for the feeds that
      send Access-Control-Allow-Origin, so they need no proxy and no quota. */
-  async function getXML(url, cacheKey, { force = false } = {}) {
+  async function getXML(url, cacheKey, { force = false, timeout = 12000 } = {}) {
     if (!force && cacheKey) {
       const hit = cache.get(cacheKey);
       if (hit) return hit;
@@ -64,7 +81,7 @@ const Api = (() => {
     }
 
     const task = (async () => {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: timeoutSignal(timeout) });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const text = await res.text();
       if (cacheKey) cache.set(cacheKey, text);
@@ -223,9 +240,86 @@ const Api = (() => {
     return dedupe(list).sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
-     /* =========================================================
+  /* =========================================================
+     FOOTBALL
+     The sidebar only needs "what is playing right now", so we read
+     ESPN's public scoreboards (free, CORS enabled) for the leagues
+     in CONFIG.sports and rank live matches by league importance.
+     ========================================================= */
+  async function liveMatches(force = false) {
+    const boards = await Promise.allSettled(
+      CONFIG.sports.leagues.map(l =>
+        getJSON(`${CONFIG.sports.base}/${l.code}/scoreboard`, "mt:" + l.code, { force, timeout: 8000 })
+      )
+    );
+
+    /* one list per league, ordered by league importance */
+    const perLeague = CONFIG.sports.leagues.map((league, rank) => {
+      const res = boards[rank];
+      if (res.status !== "fulfilled" || !res.value) return { league, rank, rows: [] };
+
+      const rows = (res.value.events || []).map(ev => {
+        const comp = ev.competitions && ev.competitions[0];
+        if (!comp) return null;
+        const home = comp.competitors.find(c => c.homeAway === "home");
+        const away = comp.competitors.find(c => c.homeAway === "away");
+        if (!home || !away) return null;
+        return {
+          id: ev.id,
+          league: league.name,
+          rank,
+          home: home.team.displayName,
+          away: away.team.displayName,
+          homeScore: Number(home.score ?? 0),
+          awayScore: Number(away.score ?? 0),
+          live: ev.status.type.state === "in",
+          finished: ev.status.type.state === "post",
+          detail: ev.status.type.detail || ev.status.type.description || "",
+          date: ev.date
+        };
+      }).filter(Boolean)
+        .sort((a, b) => {
+          /* inside a league: playing first, finished last, soonest first */
+          const phase = r => (r.live ? 0 : r.finished ? 2 : 1);
+          return phase(a) - phase(b) || new Date(a.date) - new Date(b.date);
+        });
+
+      return { league, rank, rows };
+    });
+
+    /* What is playing right now always comes first — most important
+       league first. Then the next kick-offs are interleaved across the
+       leagues so one busy league cannot fill the whole board. */
+    const picked = [];
+
+    perLeague.forEach(group => {
+      const live = group.rows.filter(r => r.live);
+      picked.push(...live);
+    });
+    const liveTaken = picked.length;
+    if (liveTaken >= CONFIG.sports.limit) return picked.slice(0, CONFIG.sports.limit);
+
+    const queues = perLeague
+      .map(g => g.rows.filter(r => !r.live))
+      .filter(q => q.length);
+
+    while (picked.length < CONFIG.sports.limit && queues.some(q => q.length)) {
+      for (const q of queues) {
+        if (picked.length >= CONFIG.sports.limit) break;
+        const next = q.shift();
+        if (next) picked.push(next);
+      }
+    }
+
+    return picked;
+  }
+
+  /* =========================================================
      WEATHER
      ========================================================= */
+  /* WeatherAPI leads: it carries the richer current conditions the
+     page shows (UV, visibility, last update). Open-Meteo catches any
+     failure and still delivers the full six-day forecast. */
   async function weather(cityId) {
     const city = CONFIG.weather.cities.find(c => c.id === cityId) || CONFIG.weather.cities[0];
     if (CONFIG.weatherApiKey) {
@@ -300,10 +394,12 @@ const Api = (() => {
     const url = CONFIG.weather.base +
       `?latitude=${city.lat}&longitude=${city.lon}` +
       "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,is_day" +
-      "&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset" +
+      "&hourly=temperature_2m,weather_code,visibility" +
+      "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max" +
       "&timezone=auto&forecast_days=6";
 
     const d = await getJSON(url, "wx:" + city.id);
+    const window = next12Window(d.hourly?.time || []);
     return {
       city,
       source: "Open-Meteo",
@@ -312,8 +408,8 @@ const Api = (() => {
       humidity: d.current.relative_humidity_2m,
       wind: d.current.wind_speed_10m,
       pressure: Math.round(d.current.pressure_msl),
-      uv: null,
-      visibility: null,
+      uv: d.daily?.uv_index_max?.[0] != null ? Math.round(d.daily.uv_index_max[0]) : null,
+      visibility: d.hourly?.visibility?.[window[0]] != null ? Math.round(d.hourly.visibility[window[0]] / 1000) : null,
       isDay: d.current.is_day === 1,
       desc: weatherDesc(d.current.weather_code),
       icon: weatherIcon(d.current.weather_code, d.current.is_day === 1),
@@ -321,7 +417,7 @@ const Api = (() => {
       lastUpdate: null,
       sunrise: d.daily?.sunrise?.[0],
       sunset: d.daily?.sunset?.[0],
-      hours: (d.hourly?.time || []).slice(...next12Window(d.hourly?.time || [])).map((t, i) => ({
+      hours: (d.hourly?.time || []).slice(...window).map((t, i) => ({
         time: t,
         temp: Math.round(d.hourly.temperature_2m[i]),
         icon: weatherIcon(d.hourly.weather_code[i], true),
@@ -351,8 +447,8 @@ const Api = (() => {
     if (!times.length) return [0, 0];
     const now = Date.now();
     const start = times.findIndex(t => new Date(t.replace(" ", "T")).getTime() >= now);
-    return [start === -1 ? 0 : start, 12];
-  }  function emojiFromWeatherApi(code, isDay = true) {
+    return [start === -1 ? 0 : start, start === -1 ? 0 : start + 12];
+  } function emojiFromWeatherApi(code, isDay = true) {
     if (code === 1000) return isDay ? "â˜€ï¸" : "ðŸŒ™";
     if (code === 1003) return "â›…";
     if ([1006, 1009].includes(code)) return "â˜ï¸";
@@ -472,6 +568,6 @@ const Api = (() => {
   );
 
   return {
-    allNews, rssFeed, gnews, weather, rates, cache, placeholder, stripHtml
+    allNews, rssFeed, gnews, liveMatches, weather, rates, cache, placeholder, stripHtml
   };
 })();
