@@ -74,7 +74,6 @@ button, input, select { font: inherit; color: inherit; }
 .topbar-left, .topbar-right { display: flex; align-items: center; gap: .7rem; }
 .sep { width: 1px; height: 14px; background: var(--line); }
 .clock { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
-.topbar-link:hover { color: var(--brand); }
 
 .live-pill {
   display: inline-flex;
