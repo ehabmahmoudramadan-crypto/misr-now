@@ -1,6 +1,6 @@
 # MISR NOW
 
-**Live Arabic news portal with an English interface** — headlines, football, currency rates and weather, built with nothing but HTML, CSS and vanilla JavaScript.
+**Live Arabic news portal with an English interface** — breaking headlines, currency rates and the weather of all 27 Egyptian governorates, built with nothing but HTML, CSS and vanilla JavaScript.
 
 The chrome (navigation, buttons, section labels, tables) is in English, and every
 headline comes back in Arabic — Egyptian Arabic first, through GNews and a set of
@@ -19,7 +19,7 @@ time. No database, no build step, no framework.
 | Headlines, summaries | Arabic | `CONFIG.gnewsLang = "ar"`, `CONFIG.gnewsCountry = "eg"`, Arabic RSS feeds |
 | Direction of a headline | automatic | every text node carries `dir="auto"`, so the browser picks RTL or LTR from the content |
 | Search | Arabic-aware | diacritics, hamza and ta-marbuta variants are folded before comparing |
-| Sports, weather, currency data | English | TheSportsDB, WeatherAPI and open.er-api return those in English |
+| Weather, currency data | English | WeatherAPI and open.er-api return those in English |
 
 ---
 
@@ -28,9 +28,9 @@ time. No database, no build step, no framework.
 | Page | File | What it does |
 | --- | --- | --- |
 | Home | `index.html` | Merged live feed (6 sources), lead story, lazy section rail, source filter, Arabic-aware search, live weather / rates / score widgets |
-| Sports | `sports.html` | Live scores with auto-refresh, league list, sports headlines, club finder |
+
 | Currency | `currency.html` | Featured EGP pairs, instant converter, full rate table with share bars |
-| Weather | `weather.html` | Current conditions for 8 Egyptian cities, next 12 hours, 5-day outlook, at-a-glance grid |
+| Weather | `weather.html` | All 27 governorates grouped by region, next 12 hours, 5-day outlook, opt-in country-wide grid loaded in batches |
 | Article | `article.html` | Full headline view with the original publisher link |
 
 Shared logic lives in three files loaded by every page:
@@ -39,7 +39,7 @@ Shared logic lives in three files loaded by every page:
 * `js/api.js` — every request, normalised to one shape, with caching and fallbacks
 * `js/ui.js` — theme, clock, nav, breaking-news ticker, toasts, formatting helpers
 
-Each page then loads its own small script: `news.js`, `sports.js`, `currency.js`, `weather.js`, `article.js`.
+Each page then loads its own small script: `news.js`, `currency.js`, `weather.js`, `article.js`.
 
 ---
 
@@ -50,7 +50,7 @@ Each page then loads its own small script: `news.js`, `sports.js`, `currency.js`
 | Top headlines | GNews (`lang=ar`, `country=eg`) | yes | Sections use an Arabic search phrase, fetched lazily |
 | Arabic RSS | DW Arabic, Al Masry Al-Youm | no | Fetched **directly** — these send CORS headers, so the browser parses the XML itself |
 | Arabic RSS | BBC Arabic, Al Jazeera, RT Arabic | no | Read through rss2json, which has a free quota and throttles bursts |
-| Football | TheSportsDB | no (free tier `123`) | Live scores, leagues, team search |
+
 | Exchange rates | open.er-api.com | no | Primary source — the only free one carrying EGP |
 | Exchange backup | Frankfurter | no | Fills any international pair the primary misses |
 | Weather | WeatherAPI | yes | Current, hourly and 6-day forecast |
@@ -99,7 +99,6 @@ Then open <http://localhost:8080>.
 ```
 proj-02/
 ├── index.html        home
-├── sports.html       football desk
 ├── currency.html     rates + converter
 ├── weather.html      weather desk
 ├── article.html      single headline view
@@ -107,10 +106,9 @@ proj-02/
 │   └── style.css     tokens, components, responsive rules, dark mode
 └── js/
     ├── config.js     all configuration in one place
-    ├── api.js        data layer (news, sports, weather, currency)
+    ├── api.js        data layer (news, weather, currency)
     ├── ui.js         shared UI helpers
     ├── news.js       home page
-    ├── sports.js     sports page
     ├── currency.js   currency page
     ├── weather.js    weather page
     └── article.js    article page

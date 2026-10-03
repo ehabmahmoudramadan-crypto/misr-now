@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weather Forecast for Egyptian Cities — MISR NOW</title>
-  <meta name="description" content="Live weather for Cairo, Alexandria, Giza, Luxor, Aswan and more — current conditions, hourly outlook and a 5-day forecast from WeatherAPI.">
+  <title>Weather Forecast for All 27 Egyptian Governorates — MISR NOW</title>
+  <meta name="description" content="Live weather for all 27 Egyptian governorates — current conditions, hourly outlook and a 5-day forecast for Cairo, Alexandria, Luxor, Aswan and every governorate in between.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -45,7 +45,6 @@
       <button class="menu-btn" id="menu-btn" aria-label="Open menu">☰</button>
       <nav class="nav" id="main-nav">
         <a href="index.html" class="nav-link" data-page="home">Home</a>
-        <a href="sports.html" class="nav-link" data-page="sports">Sports</a>
         <a href="currency.html" class="nav-link" data-page="currency">Currency</a>
         <a href="weather.html" class="nav-link" data-page="weather">Weather</a>
       </nav>
@@ -55,10 +54,10 @@
   <main class="container">
     <section class="page-head">
       <h1>🌦️ Weather Desk</h1>
-      <p>Current conditions, the next twelve hours and a five-day outlook for eight Egyptian cities. Primary source: WeatherAPI, with Open-Meteo as an automatic fallback.</p>
+      <p>Every one of Egypt's 27 governorates, grouped by region. Pick a governorate for current conditions, the next twelve hours and a five-day outlook — or load the whole country at a glance. Primary source: WeatherAPI, with Open-Meteo as an automatic fallback.</p>
     </section>
 
-    <!-- City rail -->
+    <!-- Governorate rail -->
     <div class="chips city-rail" id="city-rail"></div>
 
     <!-- Current conditions -->
@@ -81,11 +80,15 @@
       <div class="forecast-grid" id="forecast"></div>
     </section>
 
-    <!-- All cities -->
+    <!-- Every governorate -->
     <section class="card">
       <div class="panel-head">
-        <h2 class="section-title">All Cities at a Glance</h2>
-        <span class="stamp">Tap a city above for full details</span>
+        <h2 class="section-title">All 27 Governorates</h2>
+        <span class="stamp" id="all-cities-progress">27 governorates</span>
+      </div>
+      <div class="load-more-wrap">
+        <button class="btn btn-ghost" id="load-all">Load all governorates</button>
+        <span class="stamp">27 live requests, sent in small batches</span>
       </div>
       <div class="cities-grid" id="cities-grid"></div>
     </section>
@@ -99,7 +102,6 @@
       </div>
       <ul class="footer-links">
         <li><a href="index.html">Home</a></li>
-        <li><a href="sports.html">Sports</a></li>
         <li><a href="currency.html">Currency</a></li>
         <li><a href="weather.html">Weather</a></li>
       </ul>
