@@ -45,27 +45,47 @@ const CONFIG = {
     { id: "rt-arabic", name: "RT Arabic", short: "RT", url: "https://arabic.rt.com/rss/" }
   ],
 
-  /* ---------- SPORTS ---------- */
-  sports: {
-    base: "https://www.thesportsdb.com/api/v1/json",
-    key: "123",
-    primaryLeagues: ["4328", "4335", "4332", "4331", "4330"]
-  },
-
   /* ---------- WEATHER ---------- */
+  /* All 27 Egyptian governorates, grouped by region. The rail is grouped
+     the same way so the page stays readable with this many cities. */
   weatherApiKey: "eaddd34ad0834a5f841145519263009",
   weatherApi: { base: "https://api.weatherapi.com/v1" },
   weather: {
     base: "https://api.open-meteo.com/v1/forecast",
+    /* How many cities may be requested at once by the "all cities" grid */
+    batch: 6,
+    regions: ["Greater Cairo", "Delta", "Canal & Coast", "Upper Egypt"],
     cities: [
-      { id: "cairo", name: "Cairo", lat: 30.0444, lon: 31.2357 },
-      { id: "alex", name: "Alexandria", lat: 31.2001, lon: 29.9187 },
-      { id: "giza", name: "Giza", lat: 30.0131, lon: 31.2089 },
-      { id: "mansoura", name: "Mansoura", lat: 31.0409, lon: 31.3785 },
-      { id: "tanta", name: "Tanta", lat: 30.7865, lon: 30.9934 },
-      { id: "luxor", name: "Luxor", lat: 25.6872, lon: 32.6396 },
-      { id: "aswan", name: "Aswan", lat: 24.0889, lon: 32.8998 },
-      { id: "portsaid", name: "Port Said", lat: 31.2653, lon: 32.3019 }
+      { id: "cairo", name: "Cairo", region: "Greater Cairo", lat: 30.0444, lon: 31.2357 },
+      { id: "giza", name: "Giza", region: "Greater Cairo", lat: 30.0131, lon: 31.2089 },
+      { id: "qalyubia", name: "Benha", region: "Greater Cairo", lat: 30.4664, lon: 31.3247 },
+
+      { id: "dakahlia", name: "Mansoura", region: "Delta", lat: 31.0339, lon: 31.2419 },
+      { id: "gharbia", name: "Tanta", region: "Delta", lat: 30.7865, lon: 30.9934 },
+      { id: "monufia", name: "Shibin El Kom", region: "Delta", lat: 30.5525, lon: 31.0128 },
+      { id: "beheira", name: "Damanhur", region: "Delta", lat: 31.0341, lon: 30.4682 },
+      { id: "kafrelsheikh", name: "Kafr El Sheikh", region: "Delta", lat: 31.1117, lon: 30.9398 },
+      { id: "sharqia", name: "Zagazig", region: "Delta", lat: 30.5877, lon: 31.5020 },
+      { id: "damietta", name: "Damietta", region: "Delta", lat: 31.4167, lon: 31.8167 },
+
+      { id: "alexandria", name: "Alexandria", region: "Canal & Coast", lat: 31.2001, lon: 29.9187 },
+      { id: "portsaid", name: "Port Said", region: "Canal & Coast", lat: 31.2653, lon: 32.3019 },
+      { id: "ismailia", name: "Ismailia", region: "Canal & Coast", lat: 30.5965, lon: 32.2715 },
+      { id: "suez", name: "Suez", region: "Canal & Coast", lat: 29.9668, lon: 32.5498 },
+      { id: "redsea", name: "Hurghada", region: "Canal & Coast", lat: 27.2579, lon: 33.8116 },
+      { id: "matrouh", name: "Matrouh", region: "Canal & Coast", lat: 31.3543, lon: 27.2373 },
+      { id: "northsinai", name: "Arish", region: "Canal & Coast", lat: 31.1316, lon: 33.3578 },
+      { id: "southsinai", name: "Sharm El Sheikh", region: "Canal & Coast", lat: 27.9158, lon: 34.3300 },
+
+      { id: "faiyum", name: "Faiyum", region: "Upper Egypt", lat: 29.3084, lon: 30.8428 },
+      { id: "benisuef", name: "Beni Suef", region: "Upper Egypt", lat: 29.0661, lon: 31.0994 },
+      { id: "minya", name: "Minya", region: "Upper Egypt", lat: 28.1099, lon: 30.7503 },
+      { id: "asyut", name: "Asyut", region: "Upper Egypt", lat: 27.1801, lon: 31.1837 },
+      { id: "sohag", name: "Sohag", region: "Upper Egypt", lat: 26.8372, lon: 31.6959 },
+      { id: "qena", name: "Qena", region: "Upper Egypt", lat: 26.1642, lon: 32.7267 },
+      { id: "luxor", name: "Luxor", region: "Upper Egypt", lat: 25.6872, lon: 32.6396 },
+      { id: "aswan", name: "Aswan", region: "Upper Egypt", lat: 24.0889, lon: 32.8998 },
+      { id: "newvalley", name: "Kharga", region: "Upper Egypt", lat: 25.4488, lon: 30.5425 }
     ]
   },
 
@@ -94,7 +114,6 @@ const CONFIG = {
 
   /* ---------- APP BEHAVIOUR ---------- */
   cacheMinutes: 15,
-  scoresRefreshSec: 90,
   gnewsRetryMs: 4000,
   rssRetryMs: 9000,
   pageSize: 9
@@ -103,7 +122,6 @@ const CONFIG = {
 /* Page map — used by the header nav, footer and article links */
 const PAGES = {
   home: "index.html",
-  sports: "sports.html",
   currency: "currency.html",
   weather: "weather.html"
 };

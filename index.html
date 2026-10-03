@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MISR NOW — Live Arabic News, Football, Currency Rates &amp; Weather</title>
-  <meta name="description" content="MISR NOW is a live Arabic news portal with an English interface: breaking headlines from Egypt and the Arab world, football scores, EGP currency rates and real-time weather for Egyptian cities.">
+  <meta name="description" content="MISR NOW is a live Arabic news portal with an English interface: breaking headlines from Egypt and the Arab world, EGP currency rates and real-time weather for all 27 Egyptian governorates.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -51,7 +51,6 @@
 
       <nav class="nav" id="main-nav">
         <a href="index.html" class="nav-link" data-page="home">Home</a>
-        <a href="sports.html" class="nav-link" data-page="sports">Sports</a>
         <a href="currency.html" class="nav-link" data-page="currency">Currency</a>
         <a href="weather.html" class="nav-link" data-page="weather">Weather</a>
       </nav>
@@ -75,14 +74,6 @@
           <a href="currency.html" class="card-more">Converter</a>
         </header>
         <div class="live-card-body" id="strip-currency"><div class="skeleton"></div></div>
-      </article>
-
-      <article class="live-card">
-        <header class="live-card-head">
-          <h3><span class="ico">⚽</span> Live Scores</h3>
-          <a href="sports.html" class="card-more">All matches</a>
-        </header>
-        <div class="live-card-body" id="strip-scores"><div class="skeleton"></div></div>
       </article>
     </section>
 
@@ -116,11 +107,6 @@
           <div id="side-weather"></div>
         </section>
 
-        <section class="widget">
-          <h3 class="widget-title">Top Matches</h3>
-          <div id="side-scores"></div>
-        </section>
-
         <section class="widget widget-cta">
           <h3 class="widget-title">Built with</h3>
           <p>Vanilla HTML, CSS and JavaScript — no frameworks. Every figure on this page is fetched live from free public APIs.</p>
@@ -136,11 +122,10 @@
     <div class="container footer-inner">
       <div>
         <strong class="logo-inline">MISR NOW</strong>
-        <p class="muted">Live data from GNews, TheSportsDB, open.er-api, Frankfurter, WeatherAPI and open RSS feeds.</p>
+        <p class="muted">Live data from GNews, open.er-api, Frankfurter, WeatherAPI and open RSS feeds.</p>
       </div>
       <ul class="footer-links">
         <li><a href="index.html">Home</a></li>
-        <li><a href="sports.html">Sports</a></li>
         <li><a href="currency.html">Currency</a></li>
         <li><a href="weather.html">Weather</a></li>
       </ul>

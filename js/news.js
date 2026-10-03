@@ -156,7 +156,6 @@
 
   /* ---------- live widgets ---------- */
   async function loadWidgets() {
-    loadScores();
     loadCurrency();
     loadWeather();
   }
@@ -216,34 +215,6 @@
     }
   }
 
-  function scoreRow(m) {
-    const right = m.homeScore !== null ? m.score : (m.kickoff || "vs");
-    return `<div class="score-row ${m.status === "live" ? "is-live" : ""}">
-      <span class="score-teams">
-        <span>${esc(m.home)}</span>
-        <span>${esc(m.away)}</span>
-      </span>
-      <span class="score-value">${esc(right)}</span>
-    </div>`;
-  }
-
-  async function loadScores() {
-    try {
-      const matches = await Api.liveScores();
-      const strip = matches.slice(0, 3);
-
-      $("#strip-scores").innerHTML = strip.length
-        ? strip.map(scoreRow).join("")
-        : emptyState("No live matches right now");
-
-      $("#side-scores").innerHTML = matches.length
-        ? matches.slice(0, 6).map(scoreRow).join("")
-        : emptyState("No matches right now");
-    } catch {
-      $("#strip-scores").innerHTML = emptyState("Scores unavailable");
-    }
-  }
-
   /* ---------- search + load more ---------- */
   function initSearch() {
     $("#search-form").addEventListener("submit", e => {
@@ -287,7 +258,5 @@
     initSearch();
     loadNews();
     loadWidgets();
-
-    setInterval(() => loadScores(), CONFIG.scoresRefreshSec * 1000);
   });
 })();

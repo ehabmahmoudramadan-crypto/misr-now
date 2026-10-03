@@ -223,72 +223,7 @@ const Api = (() => {
     return dedupe(list).sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
-  /* =========================================================
-     SPORTS
-     ========================================================= */
-  const sportsBase = () => `${CONFIG.sports.base}/${CONFIG.sports.key}`;
-  const sportsEp = ep => sportsBase() + "/" + ep;
-
-  async function liveScores(force = false) {
-    const data = await getJSON(sportsEp("livescore.php?sport=Soccer"), "scores", { force });
-    return (data.livescore || [])
-      .filter(m => m.strSport === "Soccer")
-      .map(m => {
-        const status = statusOf(m);
-        const hasScore = status === "live" || status === "finished";
-        return {
-          id: m.idEvent,
-          league: m.strLeague,
-          round: m.intRound || "",
-          home: m.strHomeTeam,
-          away: m.strAwayTeam,
-          homeBadge: m.strHomeTeamBadge,
-          awayBadge: m.strAwayTeamBadge,
-          homeScore: hasScore ? Number(m.intHomeScore ?? 0) : null,
-          awayScore: hasScore ? Number(m.intAwayScore ?? 0) : null,
-          score: hasScore ? `${m.intHomeScore ?? 0} - ${m.intAwayScore ?? 0}` : "vs",
-          kickoff: m.strEventTime || "",
-          minute: status === "live" ? (m.strProgress || m.strStatus) : "",
-          status,
-          venue: m.strVenue || ""
-        };
-      });
-  }
-
-  /* TheSportsDB codes the match phase in strStatus:
-     P = pending, FT = finished, 1H/2H/HT/PEN = in play. */
-  function statusOf(m) {
-    const s = (m.strStatus || "").trim().toUpperCase();
-    if (m.strPostponed === "Yes" || s === "PP") return "postponed";
-    if (["FT", "AET", "FINISHED", "FULL TIME", "FULLTIME"].includes(s)) return "finished";
-    if (/^(1H|2H|ET|HT|PEN|BT|1B|2B|\d+')/.test(s)) return "live";
-    if (s === "P" || s === "NS" || s === "SCHEDULED" || !s) return "scheduled";
-    return "scheduled";
-  }
-
-  async function leagues() {
-    const data = await getJSON(sportsEp("all_leagues.php"), "leagues");
-    return (data.leagues || [])
-      .filter(l => CONFIG.sports.primaryLeagues.includes(l.idLeague))
-      .map(l => ({ id: l.idLeague, name: l.strLeague, sport: l.strSport }));
-  }
-
-  async function searchTeam(q) {
-    const data = await getJSON(sportsEp("searchteams.php?t=" + encodeURIComponent(q)), "team:" + q);
-    return (data.teams || []).map(t => ({
-      id: t.idTeam,
-      name: t.strTeam,
-      alternate: t.strTeamAlternate || "",
-      league: t.strLeague || "",
-      country: t.strCountry || "",
-      badge: t.strTeamBadge || placeholder,
-      formed: t.intFormedYear || "",
-      stadium: t.strStadium || "",
-      capacity: t.intStadiumCapacity || ""
-    }));
-  }
-
-  /* =========================================================
+     /* =========================================================
      WEATHER
      ========================================================= */
   async function weather(cityId) {
@@ -537,7 +472,6 @@ const Api = (() => {
   );
 
   return {
-    allNews, rssFeed, gnews, liveScores, leagues, searchTeam,
-    weather, rates, cache, placeholder, stripHtml
+    allNews, rssFeed, gnews, weather, rates, cache, placeholder, stripHtml
   };
 })();

@@ -215,7 +215,7 @@ main { padding-block: 1.8rem 3rem; }
 
 .live-strip {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -474,20 +474,6 @@ main { padding-block: 1.8rem 3rem; }
 .fx-grid div { display: flex; justify-content: space-between; font-size: .82rem; color: var(--ink-soft); }
 .fx-grid b { color: var(--ink); font-variant-numeric: tabular-nums; }
 
-.score-row {
-  display: flex;
-  justify-content: space-between;
-  gap: .6rem;
-  padding: .4rem 0;
-  border-bottom: 1px dashed var(--line);
-  font-size: .84rem;
-}
-.score-row:last-child { border-bottom: 0; }
-.score-teams { display: grid; gap: .1rem; min-width: 0; }
-.score-teams span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.score-value { font-family: var(--font-head); font-weight: 700; font-variant-numeric: tabular-nums; flex: none; }
-.score-row.is-live .score-value { color: var(--live); }
-
 /* ---------- page head + tabs ---------- */
 .page-head { margin-bottom: 1.6rem; }
 .page-head h1 { margin: 0 0 .4rem; font-size: 1.9rem; letter-spacing: -.03em; }
@@ -497,64 +483,14 @@ main { padding-block: 1.8rem 3rem; }
 
 .card { padding: 1.4rem 1.5rem; margin-bottom: 1.3rem; }
 
-/* ---------- sports ---------- */
-.matches-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1rem;
-}
 
-.match {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.match.is-live { border-color: var(--live); box-shadow: 0 0 0 2px color-mix(in srgb, var(--live) 22%, transparent); }
-
-.match-head {
-  display: flex;
-  justify-content: space-between;
-  gap: .5rem;
-  padding: .5rem .8rem;
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--line);
-  font-size: .74rem;
-}
-.league { font-weight: 700; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.status { color: var(--ink-soft); font-weight: 700; flex: none; }
-.status-live { color: var(--live); }
-
-.match-team {
-  display: grid;
-  grid-template-columns: 22px 1fr auto;
-  align-items: center;
-  gap: .6rem;
-  padding: .55rem .8rem;
-  font-size: .9rem;
-}
-.match-team img { width: 22px; height: 22px; object-fit: contain; }
-.match-team b { font-family: var(--font-head); font-variant-numeric: tabular-nums; }
-.match-team.win { color: var(--up); font-weight: 600; }
-.match-vs {
-  text-align: center;
-  font-size: .7rem;
-  font-weight: 700;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  padding-bottom: .6rem;
-}
-.match-foot { padding: .4rem .8rem; font-size: .74rem; color: var(--ink-soft); border-top: 1px dashed var(--line); }
-
-.leagues-grid, .teams-grid, .cities-grid {
+.cities-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
 }
 
-.league-card, .team-card, .city-card {
+.city-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -564,26 +500,44 @@ main { padding-block: 1.8rem 3rem; }
   align-items: center;
   text-align: start;
 }
-.league-icon { font-size: 1.4rem; }
-.league-card b { font-size: .94rem; display: block; }
-.league-card small, .team-card small { display: block; font-size: .78rem; color: var(--ink-soft); }
-.team-card img { width: 40px; height: 40px; object-fit: contain; flex: none; }
 
 .city-card { cursor: pointer; transition: border-color .2s, transform .2s; }
 .city-card:hover { border-color: var(--brand); transform: translateY(-2px); }
+.city-card.active { border-color: var(--brand); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 18%, transparent); }
 .city-card span { font-size: .8rem; color: var(--ink-soft); }
 .city-card em { font-style: normal; font-size: .78rem; color: var(--ink-soft); flex: none; }
+.city-card.is-loading { opacity: .55; }
+.city-skeleton { width: 34px; height: 34px; border-radius: 10px; flex: none; background: var(--line); }
 
-.team-search { display: flex; gap: .6rem; margin-bottom: 1.2rem; max-width: 480px; }
-.team-search input {
-  flex: 1;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: .55rem .9rem;
-  outline: none;
+/* every governorate, grouped by region */
+.cities-grid { display: grid; gap: 1.2rem; }
+.city-group { display: grid; gap: .6rem; }
+.city-group-title {
+  margin: 0;
+  font-size: .74rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 700;
 }
-.team-search input:focus { border-color: var(--brand); }
+.city-group-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .6rem; }
+
+/* the governorate rail, grouped by region */
+.rail-group { display: flex; align-items: baseline; gap: .6rem; margin-bottom: .55rem; }
+.rail-label {
+  flex: none;
+  width: 108px;
+  font-size: .7rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.rail-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+@media (max-width: 620px) {
+  .rail-group { display: grid; gap: .3rem; }
+  .rail-label { width: auto; }
+}
 
 /* ---------- currency ---------- */
 .converter {
