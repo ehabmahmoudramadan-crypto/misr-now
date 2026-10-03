@@ -1,8 +1,10 @@
 /* =========================================================
    MISR NOW — project configuration
-   Every API used here is free. The GNews and WeatherAPI keys
-   live in this file (school project) — for production, lock
-   them to your domain from each provider's dashboard.
+   The interface is English; the news itself is Arabic
+   (Egyptian Arabic by default). Every API used here is free.
+   The GNews and WeatherAPI keys live in this file (school
+   project) — for production, lock them to your domain from
+   each provider's dashboard.
    ========================================================= */
 
 const CONFIG = {
@@ -11,29 +13,36 @@ const CONFIG = {
   /* GNews key — https://gnews.io */
   gnewsKey: "285d6352b5efed01b826f635648ea45d",
 
+  /* Arabic headlines, Egypt-first */
+  gnewsLang: "ar",
+  gnewsCountry: "eg",
+
   /* gnews.io sends no CORS header, so the browser needs a proxy.
      Swap this for your own serverless endpoint if you have one. */
   gnewsProxy: "https://api.allorigins.win/raw?url=",
 
-  /* Section rail. Each section is fetched lazily (only on click)
-     so we stay well inside the free daily quota. */
+  /* Section rail. The labels stay English because they belong to
+     the interface; each section is fetched lazily on click so we
+     stay well inside the free daily quota. `query` is used when a
+     topic returns nothing useful in Arabic. */
   categories: [
-    { id: "top", name: "Top Stories", icon: "🔥", query: "" },
-    { id: "world", name: "World", icon: "🌍" },
-    { id: "business", name: "Business", icon: "💼" },
-    { id: "sports", name: "Sports", icon: "⚽" },
-    { id: "health", name: "Health", icon: "🩺" },
-    { id: "technology", name: "Tech", icon: "💻" },
-    { id: "entertainment", name: "Entertainment", icon: "🎬" }
+    { id: "world", name: "World", icon: "🌍", query: "العالم" },
+    { id: "business", name: "Business", icon: "💼", query: "اقتصاد" },
+    { id: "technology", name: "Tech", icon: "💻", topic: "technology" },
+    { id: "sports", name: "Sports", icon: "⚽", query: "رياضة" },
+    { id: "health", name: "Health", icon: "🩺", query: "صحة" },
+    { id: "entertainment", name: "Culture", icon: "🎬", query: "فن وثقافة" }
   ],
 
-  /* Open RSS feeds — free, no key, no quota */
+  /* Open Arabic RSS feeds — free, no key.
+     `direct: true` means the feed sends CORS headers, so the browser
+     parses the XML itself; the others need rss2json, which has a quota. */
   rssFeeds: [
-    { id: "bbc", name: "BBC News", short: "BBC", url: "https://feeds.bbci.co.uk/news/rss.xml" },
-    { id: "cbs", name: "CBS News", short: "CBS", url: "https://www.cbsnews.com/latest/rss/main" },
-    { id: "france24", name: "France 24", short: "F24", url: "https://www.france24.com/en/rss" },
-    { id: "dw", name: "Deutsche Welle", short: "DW", url: "https://rss.dw.com/rdf/rss-en-all" },
-    { id: "guardian", name: "The Guardian", short: "Guardian", url: "https://www.theguardian.com/world/rss" }
+    { id: "dw-ar", name: "Deutsche Welle Arabic", short: "DW", direct: true, url: "https://rss.dw.com/rdf/rss-ar-all" },
+    { id: "almasryalyoum", name: "Al Masry Al-Youm", short: "Masry", direct: true, url: "https://www.almasryalyoum.com/rss/rssfeeds" },
+    { id: "bbc-ar", name: "BBC Arabic", short: "BBC", url: "https://feeds.bbci.co.uk/arabic/rss.xml" },
+    { id: "aljazeera", name: "Al Jazeera", short: "AJ", url: "https://www.aljazeera.net/aljazeerarss/a7c186be-1baa-4bd4-9d80-a84db769f779/73d0e1b4-532f-45ef-b135-bfdff8b8cab9" },
+    { id: "rt-arabic", name: "RT Arabic", short: "RT", url: "https://arabic.rt.com/rss/" }
   ],
 
   /* ---------- SPORTS ---------- */
@@ -84,9 +93,10 @@ const CONFIG = {
   },
 
   /* ---------- APP BEHAVIOUR ---------- */
-  cacheMinutes: 10,
+  cacheMinutes: 15,
   scoresRefreshSec: 90,
   gnewsRetryMs: 4000,
+  rssRetryMs: 9000,
   pageSize: 9
 };
 
