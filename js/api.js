@@ -1,6 +1,8 @@
 /* =========================================================
-   مصر الآن — طبقة التعامل مع الـ APIs
-   كل المصادر مجانية وبدون مفاتيح، مع كاش محلي في localStorage
+   MISR NOW — API layer
+   - localStorage cache (fewer requests, faster repeat visits)
+   - every provider response normalised to one shape
+   - fallback source whenever the primary one fails
    ========================================================= */
 
 const Api = (() => {
@@ -24,73 +26,135 @@ const Api = (() => {
     }
   };
 
-  const rss2json = "https://api.rss2json.com/v1/api.json?rss_url=";
+  /* Several widgets ask for the same feed at the same time (ticker +
+     grid + related stories). GNews answers with 429 when that happens,
+     so identical in-flight requests share a single network call. */
+  const inflight = new Map();
 
   async function getJSON(url, cacheKey, { force = false } = {}) {
     if (!force && cacheKey) {
       const hit = cache.get(cacheKey);
       if (hit) return hit;
+      if (inflight.has(cacheKey)) return inflight.get(cacheKey);
     }
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    if (cacheKey) cache.set(cacheKey, data);
-    return data;
+
+    const task = (async () => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (cacheKey) cache.set(cacheKey, data);
+      return data;
+    })();
+
+    if (cacheKey) {
+      inflight.set(cacheKey, task);
+      task.catch(() => {}).finally(() => inflight.delete(cacheKey));
+    }
+
+    return task;
   }
 
-  /* ---------- الأخبار ---------- */
-  async function news(feed) {
-    /* ملاحظة: بارامتر count بيتطلب API key في rss2json المجاني، فبنسيبه */
-    const url = rss2json + encodeURIComponent(feed.url);
-    const data = await getJSON(url, "news:" + feed.id);
+  /* =========================================================
+     NEWS
+     ========================================================= */
+  const rss2json = "https://api.rss2json.com/v1/api.json?rss_url=";
 
+  async function rssFeed(feed) {
+    /* Note: the count parameter requires a paid key on rss2json, so we skip it */
+    const data = await getJSON(rss2json + encodeURIComponent(feed.url), "news:" + feed.id);
     return (data.items || []).map(item => ({
       title: clean(item.title),
       link: item.link,
       date: item.pubDate,
       image: item.thumbnail || item.enclosure?.link || item.image?.url || placeholder,
+      summary: stripHtml(item.description || item.content || "").slice(0, 260),
       source: feed.short,
       sourceName: feed.name,
-      feedId: feed.id
+      feedId: feed.id,
+      category: ""
     }));
   }
 
+  async function gnews(category = "top") {
+    /* "top" = the country headline feed, so no category filter is sent */
+    const params = new URLSearchParams({ lang: "en", country: "us", apikey: CONFIG.gnewsKey });
+    if (category && category !== "top") params.set("category", category);
+
+    const url = `https://gnews.io/api/v4/top-headlines?${params}`;
+    const data = await getJSON(url, "gnews:" + category);
+    return (data.articles || []).map(a => ({
+      title: clean(a.title),
+      link: a.url,
+      date: a.publishedAt,
+      image: a.image || placeholder,
+      summary: stripHtml(a.description || "").slice(0, 240),
+      source: "GNews",
+      sourceName: a.source?.name || "GNews",
+      feedId: "gnews",
+      category
+    }));
+  }
+
+  /* Merged live feed: GNews headlines + every open RSS source */
   async function allNews(force = false) {
-    const results = await Promise.allSettled(CONFIG.newsFeeds.map(f => news(f)));
+    const tasks = CONFIG.rssFeeds.map(f => ({ name: f.name, run: () => rssFeed(f) }));
+    tasks.push({ name: "GNews", run: () => gnews("top") });
+
+    const results = await Promise.allSettled(tasks.map(t => t.run()));
     const merged = [];
     results.forEach((r, i) => {
       if (r.status === "fulfilled") merged.push(...r.value);
-      else console.warn("فشل مصدر:", CONFIG.newsFeeds[i].name, r.reason?.message);
+      else console.warn("feed failed:", tasks[i].name, r.reason?.message);
     });
-    if (!merged.length) throw new Error("لا يوجد أي مصدر أخبار شغّال");
-    return dedupe(merged).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (!merged.length) throw new Error("No news source is reachable right now");
+    return sortNews(merged);
   }
 
-  /* ---------- الرياضة ---------- */
+  function sortNews(list) {
+    return dedupe(list).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
+  /* =========================================================
+     SPORTS
+     ========================================================= */
   const sportsBase = () => `${CONFIG.sports.base}/${CONFIG.sports.key}`;
+  const sportsEp = ep => sportsBase() + "/" + ep;
 
   async function liveScores(force = false) {
-    const data = await getJSON(sportsBase() + "/livescore.php?sport=Soccer", "scores", { force });
+    const data = await getJSON(sportsEp("livescore.php?sport=Soccer"), "scores", { force });
     return (data.livescore || [])
       .filter(m => m.strSport === "Soccer")
-      .map(m => ({
-        league: m.strLeague,
-        home: m.strHomeTeam,
-        away: m.strAwayTeam,
-        homeBadge: m.strHomeTeamBadge,
-        awayBadge: m.strAwayTeamBadge,
-        score: `${m.intHomeScore ?? "-"} - ${m.intAwayScore ?? "-"}`,
-        minute: m.strProgress || m.strStatus || "",
-        status: statusOf(m),
-        venue: m.strVenue || ""
-      }));
+      .map(m => {
+        const status = statusOf(m);
+        const hasScore = status === "live" || status === "finished";
+        return {
+          id: m.idEvent,
+          league: m.strLeague,
+          round: m.intRound || "",
+          home: m.strHomeTeam,
+          away: m.strAwayTeam,
+          homeBadge: m.strHomeTeamBadge,
+          awayBadge: m.strAwayTeamBadge,
+          homeScore: hasScore ? Number(m.intHomeScore ?? 0) : null,
+          awayScore: hasScore ? Number(m.intAwayScore ?? 0) : null,
+          score: hasScore ? `${m.intHomeScore ?? 0} - ${m.intAwayScore ?? 0}` : "vs",
+          kickoff: m.strEventTime || "",
+          minute: status === "live" ? (m.strProgress || m.strStatus) : "",
+          status,
+          venue: m.strVenue || ""
+        };
+      });
   }
 
+  /* TheSportsDB codes the match phase in strStatus:
+     P = pending, FT = finished, 1H/2H/HT/PEN = in play. */
   function statusOf(m) {
-    const s = (m.strStatus || "").toLowerCase();
-    if (s.includes("match") || s.includes("minute")) return "live";
-    if (s.includes("postponed") || s.includes("canceled")) return "postponed";
-    if (s.includes("finished") || s.includes("full")) return "finished";
+    const s = (m.strStatus || "").trim().toUpperCase();
+    if (m.strPostponed === "Yes" || s === "PP") return "postponed";
+    if (["FT", "AET", "FINISHED", "FULL TIME", "FULLTIME"].includes(s)) return "finished";
+    if (/^(1H|2H|ET|HT|PEN|BT|1B|2B|\d+')/.test(s)) return "live";
+    if (s === "P" || s === "NS" || s === "SCHEDULED" || !s) return "scheduled";
     return "scheduled";
   }
 
@@ -104,26 +168,29 @@ const Api = (() => {
   async function searchTeam(q) {
     const data = await getJSON(sportsEp("searchteams.php?t=" + encodeURIComponent(q)), "team:" + q);
     return (data.teams || []).map(t => ({
+      id: t.idTeam,
       name: t.strTeam,
       alternate: t.strTeamAlternate || "",
       league: t.strLeague || "",
       country: t.strCountry || "",
       badge: t.strTeamBadge || placeholder,
-      formed: t.intFormedYear || ""
+      formed: t.intFormedYear || "",
+      stadium: t.strStadium || "",
+      capacity: t.intStadiumCapacity || ""
     }));
   }
 
-  function sportsEp(ep) { return sportsBase() + "/" + ep; }
-
-  /* ---------- الطقس ---------- */
+  /* =========================================================
+     WEATHER
+     ========================================================= */
   async function weather(cityId) {
     const city = CONFIG.weather.cities.find(c => c.id === cityId) || CONFIG.weather.cities[0];
     if (CONFIG.weatherApiKey) {
       try {
         return await weatherViaWeatherApi(city);
       } catch (e) {
-        console.warn("WeatherAPI فشل، هنستخدم Open-Meteo:", e.message);
-        Api.cache.drop("wx:" + city.id);
+        console.warn("WeatherAPI failed, falling back to Open-Meteo:", e.message);
+        cache.drop("wx:" + city.id);
       }
     }
     return await weatherViaOpenMeteo(city);
@@ -131,10 +198,31 @@ const Api = (() => {
 
   async function weatherViaWeatherApi(city) {
     const url = `${CONFIG.weatherApi.base}/forecast.json?key=${CONFIG.weatherApiKey}` +
-      `&q=${city.lat},${city.lon}&days=6&aqi=no&alerts=no&lang=ar`;
+      `&q=${city.lat},${city.lon}&days=6&aqi=no&alerts=no&lang=en`;
 
     const d = await getJSON(url, "wx:" + city.id);
     const c = d.current;
+    const today = d.forecast?.forecastday?.[0] || {};
+
+  /* WeatherAPI nests the hourly list and the astro times inside
+     each forecast day, so we flatten every day into one list of
+     hours and keep the next twelve from now. */
+  const flatHours = d.forecast?.forecastday
+    ?.flatMap(f => f.hour || [])
+    .map(h => ({
+      time: h.time,
+      epoch: h.time_epoch,
+      temp: Math.round(h.temp_c),
+      desc: h.condition.text,
+      icon: emojiFromWeatherApi(h.condition.code, h.is_day === 1),
+      iconUrl: normalizeIcon(h.condition.icon)
+    })) || [];
+
+  const now = Date.now();
+  const start = flatHours.findIndex(h => (h.epoch ? h.epoch * 1000 : new Date(h.time.replace(" ", "T")).getTime()) >= now);
+  const hours = flatHours.slice(start === -1 ? 0 : start, (start === -1 ? 0 : start) + 12);
+
+  const astro = d.forecast?.astro?.astroday?.[0] || d.forecast?.forecastday?.[0]?.astro || {};
 
     return {
       city,
@@ -143,10 +231,17 @@ const Api = (() => {
       feels: Math.round(c.feelslike_c),
       humidity: c.humidity,
       wind: c.wind_kph,
+      pressure: c.pressure_mb,
+      uv: c.uv ?? null,
+      visibility: c.vis_km,
       isDay: c.is_day === 1,
       desc: c.condition.text,
       icon: emojiFromWeatherApi(c.condition.code, c.is_day === 1),
       iconUrl: normalizeIcon(c.condition.icon),
+      lastUpdate: c.last_updated,
+      sunrise: astro.sunrise,
+      sunset: astro.sunset,
+      hours,
       days: (d.forecast?.forecastday || []).map(f => ({
         date: f.date,
         max: Math.round(f.day.maxtemp_c),
@@ -161,8 +256,8 @@ const Api = (() => {
   async function weatherViaOpenMeteo(city) {
     const url = CONFIG.weather.base +
       `?latitude=${city.lat}&longitude=${city.lon}` +
-      "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day" +
-      "&daily=weather_code,temperature_2m_max,temperature_2m_min" +
+      "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,is_day" +
+      "&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset" +
       "&timezone=auto&forecast_days=6";
 
     const d = await getJSON(url, "wx:" + city.id);
@@ -173,10 +268,23 @@ const Api = (() => {
       feels: Math.round(d.current.apparent_temperature),
       humidity: d.current.relative_humidity_2m,
       wind: d.current.wind_speed_10m,
+      pressure: Math.round(d.current.pressure_msl),
+      uv: null,
+      visibility: null,
       isDay: d.current.is_day === 1,
       desc: weatherDesc(d.current.weather_code),
       icon: weatherIcon(d.current.weather_code, d.current.is_day === 1),
       iconUrl: "",
+      lastUpdate: null,
+      sunrise: d.daily?.sunrise?.[0],
+      sunset: d.daily?.sunset?.[0],
+      hours: (d.hourly?.time || []).slice(...next12Window(d.hourly?.time || [])).map((t, i) => ({
+        time: t,
+        temp: Math.round(d.hourly.temperature_2m[i]),
+        icon: weatherIcon(d.hourly.weather_code[i], true),
+        iconUrl: "",
+        desc: weatherDesc(d.hourly.weather_code[i])
+      })),
       days: (d.daily.time || []).map((date, i) => ({
         date,
         max: Math.round(d.daily.temperature_2m_max[i]),
@@ -193,31 +301,40 @@ const Api = (() => {
     return url.startsWith("//") ? "https:" + url : url;
   }
 
-  function emojiFromWeatherApi(code, isDay = true) {
+  /* Providers send a full day of hours starting at midnight.
+     We only want the next 12 hours, so the window starts at
+     the first timestamp that is still in the future. */
+  function next12Window(times) {
+    if (!times.length) return [0, 0];
+    const now = Date.now();
+    const start = times.findIndex(t => new Date(t.replace(" ", "T")).getTime() >= now);
+    return [start === -1 ? 0 : start, 12];
+  }  function emojiFromWeatherApi(code, isDay = true) {
     if (code === 1000) return isDay ? "☀️" : "🌙";
     if (code === 1003) return "⛅";
-    if ([1006, 1147].includes(code)) return "☁️";
-    if ([1009, 1030, 1135].includes(code)) return "🌫️";
-    if ([1063, 1150, 1153, 1180, 1183, 1240].includes(code)) return "🌦️";
+    if ([1006, 1009].includes(code)) return "☁️";
+    if ([1030, 1114, 1117, 1118, 1135, 1147].includes(code)) return "🌫️";
+    if ([1063, 1150, 1153, 1180, 1183, 1240, 1243].includes(code)) return "🌦️";
     if ([1066, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258].includes(code)) return "❄️";
     if ([1069, 1072, 1192, 1195, 1201, 1204, 1207, 1237, 1249, 1252, 1261, 1264].includes(code)) return "🌧️";
-    if ([1087, 1273, 1276].includes(code)) return "⛈️";
+    if ([1087, 1246, 1273, 1276, 1279].includes(code)) return "⛈️";
     return "🌡️";
   }
 
+  /* WMO code table — only used by the Open-Meteo fallback */
   function weatherDesc(code) {
     const map = {
-      0: "سماء صافية", 1: "صافي غالباً", 2: "غائم جزئياً", 3: "غائم",
-      45: "ضباب", 48: "ضباب كثيف",
-      51: "رذاذ خفيف", 53: "رذاذ", 55: "رذاذ كثيف",
-      61: "مطر خفيف", 63: "مطر", 65: "مطر غزير",
-      66: "مطر متجمد", 67: "مطر متجمد",
-      71: "ثلج خفيف", 73: "ثلج", 75: "ثلج كثيف", 77: "حبيبات ثلج",
-      80: "زخات مطر", 81: "زخات مطر", 82: "زخات غزيرة",
-      85: "زخات ثلج", 86: "زخات ثلج",
-      95: "عاصفة رعدية", 96: "رعد وبرد", 99: "عاصفة رعدية شديدة"
+      0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+      45: "Fog", 48: "Freezing fog",
+      51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle",
+      61: "Light rain", 63: "Rain", 65: "Heavy rain",
+      66: "Freezing rain", 67: "Heavy freezing rain",
+      71: "Light snow", 73: "Snow", 75: "Heavy snow", 77: "Snow grains",
+      80: "Light showers", 81: "Showers", 82: "Violent showers",
+      85: "Snow showers", 86: "Heavy snow showers",
+      95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Severe thunderstorm"
     };
-    return map[code] || "غير معروف";
+    return map[code] || "Unknown";
   }
 
   function weatherIcon(code, isDay = true) {
@@ -233,42 +350,51 @@ const Api = (() => {
     return "🌡️";
   }
 
-  /* ---------- العملات ---------- */
+  /* =========================================================
+     CURRENCY
+     ========================================================= */
   async function rates(base = CONFIG.currency.main) {
     let main = null, backup = null;
 
     try {
       main = await getJSON(CONFIG.currency.base + "/" + base, "cur:" + base);
     } catch (e) {
-      console.warn("open.er-api فشل:", e.message);
+      console.warn("open.er-api failed:", e.message);
     }
 
     try {
       const symbols = CONFIG.currency.frankfurterSymbols.join(",");
       backup = await getJSON(CONFIG.currency.frankfurter + "?base=" + base + "&symbols=" + symbols, "cur:frank");
     } catch (e) {
-      console.warn("Frankfurter فشل:", e.message);
+      console.warn("Frankfurter failed:", e.message);
     }
 
-    if (!main && !backup) throw new Error("كل مصادر العملات فشلت");
+    if (!main && !backup) throw new Error("Every currency provider failed");
 
     return {
       updated: main?.time_last_update_utc || backup?.date || new Date().toISOString(),
-      // Frankfurter بيملي أي عملة ناقصة من المصدر الأساسي
+      // Frankfurter fills any pair missing from the primary source
       rates: { ...(backup?.rates || {}), ...(main?.rates || {}) },
       sources: [main && "open.er-api", backup && "Frankfurter"].filter(Boolean)
     };
   }
 
-  /* ---------- أدوات ---------- */
+  /* =========================================================
+     SHARED HELPERS
+     ========================================================= */
   function clean(t) {
     return String(t || "")
       .replace(/<!\[CDATA\[|\]\]>/g, "")
       .replace(/&#8217;|&rsquo;/g, "'")
       .replace(/&amp;/g, "&")
       .replace(/&quot;/g, '"')
+      .replace(/&#\d+;/g, "")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  function stripHtml(html) {
+    return String(html || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   }
 
   function dedupe(list) {
@@ -285,9 +411,12 @@ const Api = (() => {
     `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="225">
       <rect width="400" height="225" fill="#1b2333"/>
       <text x="200" y="118" fill="#8fa0b8" font-size="26" font-family="sans-serif"
-        text-anchor="middle">مصر الآن</text>
+        text-anchor="middle">MISR NOW</text>
     </svg>`
   );
 
-  return { news, allNews, liveScores, leagues, searchTeam, weather, rates, cache, placeholder, weatherDesc };
+  return {
+    allNews, rssFeed, gnews, liveScores, leagues, searchTeam,
+    weather, rates, cache, placeholder, stripHtml
+  };
 })();
