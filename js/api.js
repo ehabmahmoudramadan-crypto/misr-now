@@ -80,17 +80,26 @@ const Api = (() => {
     const params = new URLSearchParams({ lang: "en", country: "us", apikey: CONFIG.gnewsKey });
     if (category && category !== "top") params.set("category", category);
 
-    const url = `https://gnews.io/api/v4/top-headlines?${params}`;
+    const direct = `https://gnews.io/api/v4/top-headlines?${params}`;
 
-    /* The free tier answers 429 when two calls land too close together,
-       so a single delayed retry is enough to recover. */
+    /* gnews.io answers without an Access-Control-Allow-Origin header,
+       so a browser cannot call it straight from the page. The request
+       therefore goes through a public read-only proxy; if that fails we
+       still try the direct address in case the provider ever adds CORS. */
+    const url = CONFIG.gnewsProxy + encodeURIComponent(direct);
+
+    /* The free tier also answers 429 when two calls land too close
+       together, so a single delayed retry is enough to recover. */
     let data;
     try {
       data = await getJSON(url, "gnews:" + category);
     } catch (err) {
-      if (!/429/.test(err.message)) throw err;
-      await new Promise(r => setTimeout(r, CONFIG.gnewsRetryMs));
-      data = await getJSON(url, "gnews:" + category);
+      if (/429/.test(err.message)) {
+        await new Promise(r => setTimeout(r, CONFIG.gnewsRetryMs));
+        data = await getJSON(url, "gnews:" + category);
+      } else {
+        data = await getJSON(direct, "gnews:" + category);
+      }
     }
 
     return (data.articles || []).map(a => ({

@@ -11,6 +11,10 @@ const CONFIG = {
   /* GNews key — https://gnews.io */
   gnewsKey: "285d6352b5efed01b826f635648ea45d",
 
+  /* gnews.io sends no CORS header, so the browser needs a proxy.
+     Swap this for your own serverless endpoint if you have one. */
+  gnewsProxy: "https://api.allorigins.win/raw?url=",
+
   /* Section rail. Each section is fetched lazily (only on click)
      so we stay well inside the free daily quota. */
   categories: [
