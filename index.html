@@ -1,206 +1,148 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مصر الآن | أخبار ورياضة وعملات وطقس لايف</title>
-  <meta name="description" content="منصة أخبار عربية لايف: آخر الأخبار، النتائج المباشرة للكرة، أسعار العملات أمام الجنيه المصري، وحالة الطقس — بتتحدث تلقائياً.">
+  <title>MISR NOW — Live News, Football, Currency Rates & Weather</title>
+  <meta name="description" content="MISR NOW is a live English news portal: breaking headlines, football scores, EGP currency rates and real-time weather for Egyptian cities. Built with vanilla HTML, CSS and JavaScript.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body data-page="home">
 
-  <!-- ===== الشريط العلوي ===== -->
+  <!-- ===== Utility bar ===== -->
   <div class="topbar">
     <div class="container topbar-inner">
-      <div class="topbar-side">
-        <span id="live-clock" class="clock">--:--:--</span>
-        <span class="dot"></span>
-        <span id="live-date">جارٍ تحميل التاريخ…</span>
+      <div class="topbar-left">
+        <span id="live-clock" class="clock">--:--</span>
+        <span class="sep"></span>
+        <span id="live-date">Loading date…</span>
       </div>
-      <div class="topbar-side">
-        <span class="badge-live"><span class="pulse"></span> مباشر</span>
-        <button class="theme-btn" id="theme-toggle" title="الوضع الليلي" aria-label="تبديل الوضع الليلي">🌙</button>
+      <div class="topbar-right">
+        <span class="live-pill"><span class="pulse"></span> LIVE</span>
+        <a class="topbar-link" href="https://github.com/ehabmahmoudramadan-crypto/misr-now" target="_blank" rel="noopener">GitHub ↗</a>
+        <button class="icon-btn" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
       </div>
     </div>
   </div>
 
-  <!-- ===== شريط الأخبار العاجلة ===== -->
-  <div class="ticker" id="ticker">
-    <span class="ticker-label">عاجل</span>
-    <div class="ticker-window">
-      <div class="ticker-track" id="ticker-track"></div>
-    </div>
+  <!-- ===== Breaking ticker ===== -->
+  <div class="ticker">
+    <span class="ticker-label">BREAKING</span>
+    <div class="ticker-window"><div class="ticker-track" id="ticker-track"></div></div>
   </div>
 
-  <!-- ===== الهيدر ===== -->
+  <!-- ===== Header ===== -->
   <header class="header">
     <div class="container header-inner">
-      <a href="#" class="logo">
-        <span class="logo-mark">م</span>
-        <span class="logo-text">مصر الآن<small>MISR&nbsp;NOW</small></span>
+      <a href="index.html" class="logo">
+        <span class="logo-mark">M</span>
+        <span class="logo-text">MISR NOW<small>LIVE NEWS PORTAL</small></span>
       </a>
 
-      <form class="search-form" id="search-form" role="search">
-        <input type="search" id="search-input" placeholder="ابحث في كل الأخبار…" autocomplete="off">
-        <button type="submit" aria-label="بحث">🔍</button>
+      <form class="search" id="search-form" role="search">
+        <input type="search" id="search-input" placeholder="Search headlines…" autocomplete="off" aria-label="Search headlines">
+        <button type="submit" aria-label="Search">🔍</button>
       </form>
 
-      <button class="menu-btn" id="menu-btn" aria-label="القائمة">☰</button>
+      <button class="menu-btn" id="menu-btn" aria-label="Open menu">☰</button>
 
       <nav class="nav" id="main-nav">
-        <a href="#news" class="nav-link active">الرئيسية</a>
-        <a href="#sports" class="nav-link">رياضة</a>
-        <a href="#currency" class="nav-link">عملات</a>
-        <a href="#weather" class="nav-link">طقس</a>
+        <a href="index.html" class="nav-link" data-page="home">Home</a>
+        <a href="sports.html" class="nav-link" data-page="sports">Sports</a>
+        <a href="currency.html" class="nav-link" data-page="currency">Currency</a>
+        <a href="weather.html" class="nav-link" data-page="weather">Weather</a>
       </nav>
     </div>
   </header>
 
   <main>
-    <!-- ===== شريط البيانات لايف ===== -->
+    <!-- ===== Live data strip ===== -->
     <section class="container live-strip">
-      <!-- الطقس -->
-      <article class="live-card" id="weather-card">
+      <article class="live-card">
         <header class="live-card-head">
-          <h3><span class="ico">🌦️</span> طقس <span id="wc-city-name">القاهرة</span></h3>
-          <select id="wc-city" class="mini-select" aria-label="اختر المدينة"></select>
+          <h3><span class="ico">🌦️</span> Weather · Cairo</h3>
+          <a href="weather.html" class="card-more">Details</a>
         </header>
-        <div class="live-card-body" id="wc-body">
-          <div class="skeleton-line"></div>
-        </div>
+        <div class="live-card-body" id="strip-weather"><div class="skeleton"></div></div>
       </article>
 
-      <!-- العملات -->
-      <article class="live-card" id="currency-card">
+      <article class="live-card">
         <header class="live-card-head">
-          <h3><span class="ico">💵</span> سعر الدولار اليوم</h3>
-          <span class="stamp" id="cur-stamp"></span>
+          <h3><span class="ico">💵</span> USD / EGP</h3>
+          <a href="currency.html" class="card-more">Converter</a>
         </header>
-        <div class="live-card-body" id="cur-body">
-          <div class="skeleton-line"></div>
-        </div>
+        <div class="live-card-body" id="strip-currency"><div class="skeleton"></div></div>
       </article>
 
-      <!-- النتائج -->
-      <article class="live-card" id="scores-card">
+      <article class="live-card">
         <header class="live-card-head">
-          <h3><span class="ico">⚽</span> نتائج مباشرة</h3>
-          <a href="#sports" class="more">المزيد</a>
+          <h3><span class="ico">⚽</span> Live Scores</h3>
+          <a href="sports.html" class="card-more">All matches</a>
         </header>
-        <div class="live-card-body" id="scores-body">
-          <div class="skeleton-line"></div>
-        </div>
+        <div class="live-card-body" id="strip-scores"><div class="skeleton"></div></div>
       </article>
     </section>
 
-    <!-- ===== الأخبار ===== -->
-    <section class="container section" id="news">
-      <div class="section-head">
-        <h2 class="section-title">آخر الأخبار</h2>
-        <div class="chips" id="news-filters"></div>
-      </div>
-      <div class="news-layout">
-        <div class="news-hero" id="news-hero"></div>
-        <div class="news-list" id="news-list"></div>
-      </div>
-      <div class="load-more-wrap">
-        <button class="btn-more" id="load-more">عرض المزيد من الأخبار</button>
-      </div>
-    </section>
+    <!-- ===== Feed + sidebar ===== -->
+    <section class="container layout">
+      <div class="main-col">
+        <div class="section-head">
+          <h2 class="section-title">Latest Headlines</h2>
+          <div class="chips" id="category-rail"></div>
+        </div>
 
-    <!-- ===== الرياضة ===== -->
-    <section class="container section alt" id="sports">
-      <div class="section-head">
-        <h2 class="section-title">⚽ رياضة</h2>
-        <div class="chips">
-          <button class="chip active" data-sport-tab="live">مباريات اليوم</button>
-          <button class="chip" data-sport-tab="leagues">أهم الدوريات</button>
-          <button class="chip" data-sport-tab="search">ابحث عن نادٍ</button>
+        <div id="category-note" class="note" hidden></div>
+
+        <article class="hero" id="hero"></article>
+
+        <div class="news-grid" id="news-grid"></div>
+
+        <div class="load-more-wrap">
+          <button class="btn" id="load-more">Load more headlines</button>
         </div>
       </div>
 
-      <div id="sport-live">
-        <div class="matches-grid" id="matches-grid"></div>
-      </div>
+      <aside class="sidebar">
+        <section class="widget">
+          <h3 class="widget-title">Sources</h3>
+          <ul class="source-list" id="source-list"></ul>
+        </section>
 
-      <div id="sport-leagues" hidden>
-        <div class="leagues-grid" id="leagues-grid"></div>
-      </div>
+        <section class="widget">
+          <h3 class="widget-title">Cairo Weather</h3>
+          <div id="side-weather"></div>
+        </section>
 
-      <div id="sport-search" hidden>
-        <div class="team-search">
-          <input type="search" id="team-input" placeholder="اكتب اسم النادي… مثال: الأهلي" autocomplete="off">
-          <button class="btn-primary" id="team-btn">ابحث</button>
-        </div>
-        <div class="teams-grid" id="teams-grid"></div>
-      </div>
-    </section>
+        <section class="widget">
+          <h3 class="widget-title">Top Matches</h3>
+          <div id="side-scores"></div>
+        </section>
 
-    <!-- ===== العملات ===== -->
-    <section class="container section" id="currency">
-      <div class="section-head">
-        <h2 class="section-title">💵 أسعار العملات أمام الجنيه المصري</h2>
-        <span class="stamp" id="cur-table-stamp"></span>
-      </div>
-
-      <div class="converter">
-        <div class="conv-field">
-          <label for="conv-amount">المبلغ</label>
-          <input type="number" id="conv-amount" value="100" min="0" step="any">
-        </div>
-        <div class="conv-field">
-          <label for="conv-from">من</label>
-          <select id="conv-from"></select>
-        </div>
-        <span class="conv-arrow">←</span>
-        <div class="conv-field">
-          <label for="conv-to">إلى</label>
-          <select id="conv-to"></select>
-        </div>
-        <div class="conv-result">
-          <small>النتيجة</small>
-          <strong id="conv-out">—</strong>
-        </div>
-      </div>
-
-      <div class="rates-table-wrap">
-        <table class="rates-table">
-          <thead>
-            <tr><th>العملة</th><th>الرمز</th><th>بالدولار</th><th>بالجنيه المصري</th></tr>
-          </thead>
-          <tbody id="rates-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ===== الطقس ===== -->
-    <section class="container section alt" id="weather">
-      <div class="section-head">
-        <h2 class="section-title">🌦️ حالة الطقس</h2>
-        <div class="chips" id="wc-city-chips"></div>
-      </div>
-
-      <div class="wx-now" id="wx-now"></div>
-
-      <h3 class="sub-title">توقعات 5 أيام</h3>
-      <div class="forecast-grid" id="wx-forecast"></div>
+        <section class="widget widget-cta">
+          <h3 class="widget-title">Built with</h3>
+          <p>Vanilla HTML, CSS and JavaScript — no frameworks. Every figure on this page is fetched live from free public APIs.</p>
+          <div class="stack">
+            <span>HTML5</span><span>CSS3</span><span>ES6+</span><span>REST APIs</span>
+          </div>
+        </section>
+      </aside>
     </section>
   </main>
 
   <footer class="footer">
     <div class="container footer-inner">
       <div>
-        <strong class="logo-inline">مصر الآن</strong>
-        <p class="muted">كل البيانات لايف من مصادر عامة عبر APIs مجانية.</p>
+        <strong class="logo-inline">MISR NOW</strong>
+        <p class="muted">Live data from GNews, TheSportsDB, open.er-api, Frankfurter, WeatherAPI and open RSS feeds.</p>
       </div>
-      <ul class="footer-sources">
-        <li>الأخبار: RSS — BBC · DW · France24 · RT · CNN</li>
-        <li>الرياضة: TheSportsDB</li>
-        <li>العملات: open.er-api</li>
-        <li>الطقس: Open-Meteo</li>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="sports.html">Sports</a></li>
+        <li><a href="currency.html">Currency</a></li>
+        <li><a href="weather.html">Weather</a></li>
       </ul>
     </div>
   </footer>
@@ -209,6 +151,7 @@
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/news.js"></script>
 </body>
 </html>
