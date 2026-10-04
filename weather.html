@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Forecast for Egyptian Cities — MISR NOW</title>
+  <meta name="description" content="Live weather for Cairo, Alexandria, Giza, Luxor, Aswan and more — current conditions, hourly outlook and a 5-day forecast from WeatherAPI.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="weather">
+
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <span id="live-clock" class="clock">--:--</span>
+        <span class="sep"></span>
+        <span id="live-date">Loading date…</span>
+      </div>
+      <div class="topbar-right">
+        <span class="live-pill"><span class="pulse"></span> LIVE</span>
+        <a class="topbar-link" href="https://github.com/ehabmahmoudramadan-crypto/misr-now" target="_blank" rel="noopener">GitHub ↗</a>
+        <button class="icon-btn" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ticker">
+    <span class="ticker-label">BREAKING</span>
+    <div class="ticker-window"><div class="ticker-track" id="ticker-track"></div></div>
+  </div>
+
+  <header class="header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-mark">M</span>
+        <span class="logo-text">MISR NOW<small>LIVE NEWS PORTAL</small></span>
+      </a>
+      <form class="search" id="search-form" role="search">
+        <input type="search" id="search-input" placeholder="Search headlines…" autocomplete="off" aria-label="Search headlines">
+        <button type="submit" aria-label="Search">🔍</button>
+      </form>
+      <button class="menu-btn" id="menu-btn" aria-label="Open menu">☰</button>
+      <nav class="nav" id="main-nav">
+        <a href="index.html" class="nav-link" data-page="home">Home</a>
+        <a href="sports.html" class="nav-link" data-page="sports">Sports</a>
+        <a href="currency.html" class="nav-link" data-page="currency">Currency</a>
+        <a href="weather.html" class="nav-link" data-page="weather">Weather</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="page-head">
+      <h1>🌦️ Weather Desk</h1>
+      <p>Current conditions, the next twelve hours and a five-day outlook for eight Egyptian cities. Primary source: WeatherAPI, with Open-Meteo as an automatic fallback.</p>
+    </section>
+
+    <!-- City rail -->
+    <div class="chips city-rail" id="city-rail"></div>
+
+    <!-- Current conditions -->
+    <section class="card wx-current" id="wx-current"></section>
+
+    <!-- Hourly -->
+    <section class="card">
+      <div class="panel-head">
+        <h2 class="section-title">Next 12 Hours</h2>
+        <span class="stamp" id="hourly-stamp"></span>
+      </div>
+      <div class="hourly" id="hourly"></div>
+    </section>
+
+    <!-- 5 day -->
+    <section class="card">
+      <div class="panel-head">
+        <h2 class="section-title">5-Day Forecast</h2>
+      </div>
+      <div class="forecast-grid" id="forecast"></div>
+    </section>
+
+    <!-- All cities -->
+    <section class="card">
+      <div class="panel-head">
+        <h2 class="section-title">All Cities at a Glance</h2>
+        <span class="stamp">Tap a city above for full details</span>
+      </div>
+      <div class="cities-grid" id="cities-grid"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div>
+        <strong class="logo-inline">MISR NOW</strong>
+        <p class="muted">Weather: WeatherAPI.com · fallback Open-Meteo.com</p>
+      </div>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="sports.html">Sports</a></li>
+        <li><a href="currency.html">Currency</a></li>
+        <li><a href="weather.html">Weather</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/weather.js"></script>
+</body>
+</html>
