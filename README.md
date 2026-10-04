@@ -47,7 +47,17 @@ Each page then loads its own small script: `news.js`, `sports.js`, `currency.js`
 * If every currency provider fails the page shows an explicit empty state.
 * Identical in-flight requests share one network call, which keeps GNews
   inside its free-tier rate limit.
+* A `429` from GNews triggers one delayed retry.
 * Responses are cached in `localStorage` for `CONFIG.cacheMinutes`.
+
+### One thing worth knowing about GNews
+
+`gnews.io` sends no `Access-Control-Allow-Origin` header, so a browser is not
+allowed to call it directly from a page. The request therefore goes through a
+public read-only proxy (`CONFIG.gnewsProxy`). If the proxy ever disappears, the
+code falls back to the direct address, so the site keeps working as soon as the
+provider adds CORS support. Replace the proxy with your own serverless endpoint
+if you want the key to stay off the client.
 
 ---
 
