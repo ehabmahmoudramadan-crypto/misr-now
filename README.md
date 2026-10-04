@@ -1,105 +1,117 @@
-<div align="center">
+# MISR NOW
 
-# 📰 مصر الآن | MISR NOW
+**Live English news portal for Egypt and the world** — headlines, football, currency rates and weather, built with nothing but HTML, CSS and vanilla JavaScript.
 
-**منصة أخبار عربية لايف — أخبار، رياضة، عملات، وطقس**
+Every figure on the site is fetched live from free public APIs at request time. There is no database, no build step and no framework.
 
-موقع أخبار شبيه بمصراوي، مبني بـ **HTML + CSS + JavaScript** بس (من غير أي framework)، وبيجيب كل البيانات **لايف** من مصادر حقيقية عبر APIs مجانية.
-
-</div>
+🔗 **Live demo:** https://ehabmahmoudramadan-crypto.github.io/misr-now/
 
 ---
 
-## ✨ المميزات
+## What is inside
 
-| القسم | الوصف |
-|-------|-------|
-| 📰 **أخبار لايف** | 5 مصادر عربية (BBC · DW · France24 · RT · CNN) مع صور + شريط أخبار عاجلة متحرك |
-| 🔍 **بحث وفلترة** | بحث بالكلمات + فلترة حسب المصدر + زر "عرض المزيد" |
-| ⚽ **رياضة** | نتائج مباشرة + حالة المباراة (مباشر/انتهت) + أهم الدوريات + بحث عن نادٍ بالاسم |
-| 💵 **عملات** | سعر الدولار مقابل الجنيه + جدول 11 عملة + **محول فوري** بين أي عملتين |
-| 🌦️ **طقس** | حالة لحظية بـ **WeatherAPI** (أيقونات حقيقية) + توقعات 5 أيام + 8 مدن مصرية |
-| 🌙 **وضع ليلي** | تبديل فاتح/داكن مع حفظ الاختيار |
-| ⚡ **تحديث تلقائي** | النتائج كل 90 ثانية، والطقس/العملات/الأخبار كل ساعة |
-| 💾 **كاش محلي** | `localStorage` يمنع طلبات مكررة ويحفظ سرعة التصفح |
+| Page | File | What it does |
+| --- | --- | --- |
+| Home | `index.html` | Merged live feed (6 sources), lead story, lazy category rail, source filter, search, live weather / rates / score widgets |
+| Sports | `sports.html` | Live scores with auto-refresh, league list, sports headlines, club finder |
+| Currency | `currency.html` | Featured EGP pairs, instant converter, full rate table with share bars |
+| Weather | `weather.html` | Current conditions for 8 Egyptian cities, next 12 hours, 5-day outlook, at-a-glance grid |
+| Article | `article.html` | Full headline view with the original publisher link |
 
-## 🧰 التقنيات
+Shared logic lives in three files loaded by every page:
 
-| الطبقة | التقنية |
-|--------|---------|
-| الواجهة | HTML5 · CSS3 (RTL + Responsive) · Vanilla JavaScript (ES6+) |
-| الخطوط | Cairo + Tajawal (Google Fonts) |
-| التخزين المؤقت | `localStorage` |
-| الأدوات | بدون أي مكتبات خارجية — كله من الصفر |
+* `js/config.js` — API keys, endpoints, feed list, cities, currencies, refresh timers
+* `js/api.js` — every request, normalised to one shape, with caching and fallbacks
+* `js/ui.js` — theme, clock, nav, breaking-news ticker, toasts, formatting helpers
 
-## 🔌 الـ APIs المستخدمة
+Each page then loads its own small script: `news.js`, `sports.js`, `currency.js`, `weather.js`, `article.js`.
 
-| الاستخدام | الخدمة | Key مطلوب؟ |
-|-----------|--------|-----------|
-| 📰 الأخبار | RSS عبر [rss2json](https://rss2json.com) (BBC عربي · DW · France24 · RT · CNN) | ❌ |
-| ⚽ الرياضة | [TheSportsDB](https://www.thesportsdb.com/) (`123` = مفتاح مجاني) | ❌ |
-| 💵 العملات | [open.er-api.com](https://www.exchangerate-api.com) + [Frankfurter](https://frankfurter.dev) احتياطي | ❌ |
-| 🌦️ الطقس | [WeatherAPI](https://www.weatherapi.com) (أساسي) + [Open-Meteo](https://open-meteo.com) (احتياطي) | ✅ |
+---
 
-> **ملاحظة على العملات:** المصدر الأساسي `open.er-api.com` لأنه الوحيد اللي فيه سعر **الجنيه المصري EGP**، وFrankfurter (بيانات ECB) بيملي باقي العملات العالمية لو المصدر الأساسي وقع.
+## Data sources
 
-## 🚀 التشغيل
+| Feature | Provider | Key needed | Notes |
+| --- | --- | --- | --- |
+| Top headlines | GNews | yes | English (`lang=en`, `country=us`), categories loaded lazily |
+| RSS headlines | rss2json + BBC, CBS, France 24, DW, The Guardian | no | 10 items per feed |
+| Football | TheSportsDB | no (free tier `123`) | Live scores, leagues, team search |
+| Exchange rates | open.er-api.com | no | Primary source — the only free one carrying EGP |
+| Exchange backup | Frankfurter | no | Fills any international pair the primary misses |
+| Weather | WeatherAPI | yes | Current, hourly and 6-day forecast |
+| Weather fallback | Open-Meteo | no | Used automatically if WeatherAPI fails |
 
-الموقع HTML ثابت، فيك تحفظ `index.html` تفتحه في المتصفح. لكن **الأفضل** تشغله على سيرفر محلي:
+### Behaviour under failure
+
+* A dead RSS feed is logged and skipped — the rest of the feed still renders.
+* WeatherAPI falling back to Open-Meteo is transparent to the page.
+* If every currency provider fails the page shows an explicit empty state.
+* Identical in-flight requests share one network call, which keeps GNews
+  inside its free-tier rate limit.
+* Responses are cached in `localStorage` for `CONFIG.cacheMinutes`.
+
+---
+
+## Run it locally
+
+The project is static, but the browser blocks `fetch` on `file://`, so serve it:
 
 ```bash
-# داخل فولدر المشروع
+# any static server works, e.g.
 npx serve .
-# أو
-python -m http.server 8000
+# or with Node only
+node -e "const h=require('http'),f=require('fs'),p=require('path');h.createServer((q,s)=>{const fp=p.join(process.cwd(),q.url==='/'?'/index.html':q.url.split('?')[0]);f.readFile(fp,(e,d)=>{if(e){s.writeHead(404);return s.end('404')}s.writeHead(200,{'Content-Type':{'.html':'text/html','.js':'text/javascript','.css':'text/css'}[p.extname(fp)]||'text/plain'});s.end(d)})}).listen(8080)"
 ```
 
-ثم افتح: **http://localhost:8000**
+Then open <http://localhost:8080>.
 
-> ⚠️ لو فتحته بـ `file://` مباشرة، بعض المتصفحات هتمنع طلبات الأخبار والرياضة (CORS) — فاستخدم سيرفر محلي.
+---
 
-## 🗂️ هيكل المشروع
+## Project layout
 
 ```
 proj-02/
-├── index.html          # الصفحة الرئيسية (هيدر + لايف ستريب + 4 أقسام)
+├── index.html        home
+├── sports.html       football desk
+├── currency.html     rates + converter
+├── weather.html      weather desk
+├── article.html      single headline view
 ├── css/
-│   └── style.css       # كل التنسيقات + الوضع الليلي + الريسونسيف
-├── js/
-│   ├── config.js       # الإعدادات: المفاتيح + المصادر + المدن + العملات
-│   ├── api.js          # طبقة الـ APIs (كاش + تطبيع البيانات + معالجة أخطاء)
-│   └── app.js          # العرض والتفاعل (رندر، بحث، فلترة، تبويبات)
-└── README.md
+│   └── style.css     tokens, components, responsive rules, dark mode
+└── js/
+    ├── config.js     all configuration in one place
+    ├── api.js        data layer (news, sports, weather, currency)
+    ├── ui.js         shared UI helpers
+    ├── news.js       home page
+    ├── sports.js     sports page
+    ├── currency.js   currency page
+    ├── weather.js    weather page
+    └── article.js    article page
 ```
-
-## ⚙️ الإعدادات (`js/config.js`)
-
-| المفتاح | الوصف |
-|---------|-------|
-| `weatherApiKey` | مفتاح WeatherAPI (لو تغيّر، WeatherAPI هيتحول لـ fallback) |
-| `newsFeeds` | مصادر الأخبار (تقدر تضيف/تشيل أي RSS) |
-| `weather.cities` | المدن المصرية المتاحة |
-| `currency.list` | العملات المعروضة |
-| `cacheMinutes` | مدة الكاش قبل إعادة الطلب |
-| `scoresRefreshSec` | كل كام ثانية تتحدث النتائج المباشرة |
-
-## 🔐 أمان المفتاح
-
-المفتاح موجود في `js/config.js` وبالتالي **ظاهر في المتصفح** — وده طبيعي في مشروع زي ده، بس للأفضل:
-
-1. من لوحة WeatherAPI → **Restrict API key** وحصره على الدومين بتاعك.
-2. لو المشروع بقى إنتاج، ننقله لـ backend (سيرفر) ونخزّن المفتاح في متغير بيئة.
-
-## 📝 ملاحظات
-
-- الأخبار بتعرض **عنوان + صورة + المصدر + الوقت** والضغط بيوديك لمصدر الخبر الأصلي.
--^*$TheSportsDB* مجاني ومستهدف المشاريع الصغيرة؛ بعض الـ endpoints (الترتيب، مباريات الفرق) محجوزة للمدفوع.
-- كل الأرقام relacionados بالعملات بتتحدث يومياً، والطقس كل ساعة تقريباً حسب المصدر.
 
 ---
 
-<div align="center">
+## Security note about the API keys
 
-صُنع بـ ❤️ في|DEPI — News & Live Data Project
+`js/config.js` holds the GNews and WeatherAPI keys, which means they are
+visible to anyone who opens the source. That is fine for a school project,
+but before publishing anything real:
 
-</div>
+1. Restrict each key to the deployment domain from the provider's dashboard.
+2. Or move the calls behind a tiny serverless function and keep the key there.
+
+---
+
+## Accessibility and responsiveness
+
+* Semantic landmarks, `aria-label`s on icon buttons, `aria-current` on the active nav item.
+* Full keyboard focus on every control; cards open from buttons, not `<div>`s.
+* Breakpoints at 1080px, 900px, 760px and 520px — the layout holds from 1440px down to 360px.
+* `prefers-reduced-motion` disables the ticker animation and transitions.
+* Light and dark themes, remembered in `localStorage`.
+
+---
+
+## Licence
+
+Built as a front-end course project. Headlines and images belong to their
+original publishers; this project only indexes their public feeds.
