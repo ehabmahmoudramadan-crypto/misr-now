@@ -81,7 +81,18 @@ const Api = (() => {
     if (category && category !== "top") params.set("category", category);
 
     const url = `https://gnews.io/api/v4/top-headlines?${params}`;
-    const data = await getJSON(url, "gnews:" + category);
+
+    /* The free tier answers 429 when two calls land too close together,
+       so a single delayed retry is enough to recover. */
+    let data;
+    try {
+      data = await getJSON(url, "gnews:" + category);
+    } catch (err) {
+      if (!/429/.test(err.message)) throw err;
+      await new Promise(r => setTimeout(r, CONFIG.gnewsRetryMs));
+      data = await getJSON(url, "gnews:" + category);
+    }
+
     return (data.articles || []).map(a => ({
       title: clean(a.title),
       link: a.url,

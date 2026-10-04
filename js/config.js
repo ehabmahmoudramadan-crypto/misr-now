@@ -82,6 +82,7 @@ const CONFIG = {
   /* ---------- APP BEHAVIOUR ---------- */
   cacheMinutes: 10,
   scoresRefreshSec: 90,
+  gnewsRetryMs: 4000,
   pageSize: 9
 };
 
