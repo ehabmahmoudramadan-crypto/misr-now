@@ -1,70 +1,94 @@
 /* =========================================================
-   مصر الآن — إعدادات المشروع
-   كل الـ APIs المستخدمة مجانية ولا تحتاج أي مفتاح (Key).
-   لو حبيت أخبار أكتر، سجّل في gnews.io وحط المفتاح في الأسفل.
+   MISR NOW — project configuration
+   Every API used here is free. The GNews and WeatherAPI keys
+   live in this file (school project) — for production, lock
+   them to your domain from each provider's dashboard.
    ========================================================= */
 
 const CONFIG = {
-  /* مفتاح GNews (اختياري) — من https://gnews.io */
-  gnewsKey: "",
+  /* ---------- NEWS ---------- */
 
-  /* مصادر الأخبار العربية عبر RSS */
-  newsFeeds: [
-    { id: "bbc", name: "BBC عربي", short: "BBC", url: "https://feeds.bbci.co.uk/arabic/rss.xml" },
-    { id: "dw", name: "DW عربية", short: "DW", url: "https://rss.dw.com/rdf/rss-ar-all" },
-    { id: "france24", name: "France 24", short: "F24", url: "https://www.france24.com/ar/rss" },
-    { id: "rt", name: "RT عربية", short: "RT", url: "https://arabic.rt.com/rss/" },
-    { id: "cnn", name: "CNN عربية", short: "CNN", url: "http://arabic.cnn.com/api/v1/rss/rss.xml" }
+  /* GNews key — https://gnews.io */
+  gnewsKey: "285d6352b5efed01b826f635648ea45d",
+
+  /* Section rail. Each section is fetched lazily (only on click)
+     so we stay well inside the free daily quota. */
+  categories: [
+    { id: "top", name: "Top Stories", icon: "🔥", query: "" },
+    { id: "world", name: "World", icon: "🌍" },
+    { id: "business", name: "Business", icon: "💼" },
+    { id: "sports", name: "Sports", icon: "⚽" },
+    { id: "health", name: "Health", icon: "🩺" },
+    { id: "technology", name: "Tech", icon: "💻" },
+    { id: "entertainment", name: "Entertainment", icon: "🎬" }
   ],
 
-  /* الرياضة: TheSportsDB — المفتاح المجاني 123 */
+  /* Open RSS feeds — free, no key, no quota */
+  rssFeeds: [
+    { id: "bbc", name: "BBC News", short: "BBC", url: "https://feeds.bbci.co.uk/news/rss.xml" },
+    { id: "cbs", name: "CBS News", short: "CBS", url: "https://www.cbsnews.com/latest/rss/main" },
+    { id: "france24", name: "France 24", short: "F24", url: "https://www.france24.com/en/rss" },
+    { id: "dw", name: "Deutsche Welle", short: "DW", url: "https://rss.dw.com/rdf/rss-en-all" },
+    { id: "guardian", name: "The Guardian", short: "Guardian", url: "https://www.theguardian.com/world/rss" }
+  ],
+
+  /* ---------- SPORTS ---------- */
   sports: {
     base: "https://www.thesportsdb.com/api/v1/json",
     key: "123",
     primaryLeagues: ["4328", "4335", "4332", "4331", "4330"]
   },
 
-  /* الطقس: WeatherAPI (أساسي) + Open-Meteo (احتياطي) */
+  /* ---------- WEATHER ---------- */
   weatherApiKey: "eaddd34ad0834a5f841145519263009",
   weatherApi: { base: "https://api.weatherapi.com/v1" },
   weather: {
     base: "https://api.open-meteo.com/v1/forecast",
     cities: [
-      { id: "cairo", name: "القاهرة", lat: 30.0444, lon: 31.2357 },
-      { id: "alex", name: "الإسكندرية", lat: 31.2001, lon: 29.9187 },
-      { id: "giza", name: "الجيزة", lat: 30.0131, lon: 31.2089 },
-      { id: "mansoura", name: "المنصورة", lat: 31.0409, lon: 31.3785 },
-      { id: "tanta", name: "طنطا", lat: 30.7865, lon: 30.9934 },
-      { id: "luxor", name: "الأقصر", lat: 25.6872, lon: 32.6396 },
-      { id: "aswan", name: "أسوان", lat: 24.0889, lon: 32.8998 },
-      { id: "portsaid", name: "بورسعيد", lat: 31.2653, lon: 32.3019 }
+      { id: "cairo", name: "Cairo", lat: 30.0444, lon: 31.2357 },
+      { id: "alex", name: "Alexandria", lat: 31.2001, lon: 29.9187 },
+      { id: "giza", name: "Giza", lat: 30.0131, lon: 31.2089 },
+      { id: "mansoura", name: "Mansoura", lat: 31.0409, lon: 31.3785 },
+      { id: "tanta", name: "Tanta", lat: 30.7865, lon: 30.9934 },
+      { id: "luxor", name: "Luxor", lat: 25.6872, lon: 32.6396 },
+      { id: "aswan", name: "Aswan", lat: 24.0889, lon: 32.8998 },
+      { id: "portsaid", name: "Port Said", lat: 31.2653, lon: 32.3019 }
     ]
   },
 
-/* العملات: open.er-api.com (أساسي — فيه الجنيه) + Frankfurter (احتياطي — عملات عالمية) */
+  /* ---------- CURRENCY ---------- */
+  /* open.er-api is the only free source that carries EGP,
+     so it stays the primary; Frankfurter backs up world pairs. */
   currency: {
     base: "https://open.er-api.com/v6/latest",
     frankfurter: "https://api.frankfurter.dev/v1/latest",
     frankfurterSymbols: ["EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "TRY", "CNY"],
     main: "USD",
     list: [
-      { code: "USD", name: "دولار أمريكي", flag: "🇺🇸" },
-      { code: "EUR", name: "يورو", flag: "🇪🇺" },
-      { code: "GBP", name: "جنيه إسترليني", flag: "🇬🇧" },
-      { code: "SAR", name: "ريال سعودي", flag: "🇸🇦" },
-      { code: "AED", name: "درهم إماراتي", flag: "🇦🇪" },
-      { code: "QAR", name: "ريال قطري", flag: "🇶🇦" },
-      { code: "KWD", name: "دينار كويتي", flag: "🇰🇼" },
-      { code: "JPY", name: "ين ياباني", flag: "🇯🇵" },
-      { code: "TRY", name: "ليرة تركية", flag: "🇹🇷" },
-      { code: "CNY", name: "يوان صيني", flag: "🇨🇳" },
-      { code: "EGP", name: "جنيه مصري", flag: "🇪🇬" }
+      { code: "USD", name: "US Dollar", flag: "🇺🇸" },
+      { code: "EUR", name: "Euro", flag: "🇪🇺" },
+      { code: "GBP", name: "British Pound", flag: "🇬🇧" },
+      { code: "SAR", name: "Saudi Riyal", flag: "🇸🇦" },
+      { code: "AED", name: "UAE Dirham", flag: "🇦🇪" },
+      { code: "QAR", name: "Qatari Riyal", flag: "🇶🇦" },
+      { code: "KWD", name: "Kuwaiti Dinar", flag: "🇰🇼" },
+      { code: "JPY", name: "Japanese Yen", flag: "🇯🇵" },
+      { code: "TRY", name: "Turkish Lira", flag: "🇹🇷" },
+      { code: "CNY", name: "Chinese Yuan", flag: "🇨🇳" },
+      { code: "EGP", name: "Egyptian Pound", flag: "🇪🇬" }
     ]
   },
 
-  /* مدة الكاش قبل إعادة الطلب (بالدقائق) */
+  /* ---------- APP BEHAVIOUR ---------- */
   cacheMinutes: 10,
+  scoresRefreshSec: 90,
+  pageSize: 9
+};
 
-  /* تحديث النتائج المباشرة كل ثانية */
-  scoresRefreshSec: 90
+/* Page map — used by the header nav, footer and article links */
+const PAGES = {
+  home: "index.html",
+  sports: "sports.html",
+  currency: "currency.html",
+  weather: "weather.html"
 };
